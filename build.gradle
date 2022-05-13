@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+group 'com.github.jie65535.opencommand'
+version 'dev-1.0.0'
+
+sourceCompatibility = 17
+targetCompatibility = 17
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation fileTree(dir: 'lib', include: ['*.jar'])
+}
+
+jar {
+    jar.baseName = 'opencommand'
+
+    destinationDir = file(".")
+}
