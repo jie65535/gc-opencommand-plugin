@@ -6,6 +6,12 @@
 1. 在 Release 下载 `jar`
 2. 放入 `plugins` 文件夹即可
 
+# 构建说明
+1. 克隆仓库
+2. 在目录下新建 `lib` 目录
+3. 将 `grasscutter-1.1.x-dev.jar` 放入 `lib` 目录
+4. `gradle build`
+
 # 玩家使用流程
 1. 在客户端中填写服务地址，确认是否支持
 2. 填写UID，发送验证码
