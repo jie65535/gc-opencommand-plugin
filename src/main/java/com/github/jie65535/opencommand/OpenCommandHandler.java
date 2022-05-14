@@ -4,12 +4,14 @@ import com.github.jie65535.opencommand.json.JsonRequest;
 import com.github.jie65535.opencommand.json.JsonResponse;
 import emu.grasscutter.Grasscutter;
 import emu.grasscutter.command.CommandMap;
+import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
 import emu.grasscutter.utils.MessageHandler;
 import emu.grasscutter.utils.Utils;
-import express.http.HttpContextHandler;
+import express.Express;
 import express.http.Request;
 import express.http.Response;
+import io.javalin.Javalin;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
@@ -18,15 +20,19 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class OpenCommandHandler implements HttpContextHandler {
+public final class OpenCommandHandler implements Router {
+
+    @Override
+    public void applyRoutes(Express express, Javalin javalin) {
+        express.post("/opencommand/api", OpenCommandHandler::handle);
+    }
 
     private static final Map<String, Integer> clients = new HashMap<>();
     private static final Map<String, Date> tokenExpireTime = new HashMap<>();
     private static final Map<String, Integer> codes = new HashMap<>();
     private static final Int2ObjectMap<Date> codeExpireTime = new Int2ObjectOpenHashMap<>();
 
-    @Override
-    public void handle(Request request, Response response) throws IOException {
+    public static void handle(Request request, Response response) {
         // Trigger cleanup action
         cleanupExpiredData();
         var now = new Date();
@@ -70,6 +76,7 @@ public final class OpenCommandHandler implements HttpContextHandler {
             response.json(new JsonResponse(401, "Unauthorized"));
             return;
         }
+
         if (codes.containsKey(req.token)) {
             if (req.action.equals("verify")) {
                 if (codes.get(req.token).equals(req.data)) {
@@ -85,7 +92,7 @@ public final class OpenCommandHandler implements HttpContextHandler {
         } else {
             if (req.action.equals("command")) {
                 // update token expire time
-                tokenExpireTime.put(req.token, new Date(now.getTime() + 60 * 60 * 1000));
+                tokenExpireTime.put(req.token, new Date(now.getTime() + 24 * 60 * 60 * 1000));
                 var playerId = clients.get(req.token);
                 var player = Grasscutter.getGameServer().getPlayerByUid(playerId);
                 var command = req.data.toString();
@@ -105,9 +112,18 @@ public final class OpenCommandHandler implements HttpContextHandler {
         response.json(new JsonResponse(403, "forbidden"));
     }
 
-    private void cleanupExpiredData() {
+    private static void cleanupExpiredData() {
         var now = new Date();
         codeExpireTime.int2ObjectEntrySet().removeIf(entry -> entry.getValue().before(now));
-        tokenExpireTime.entrySet().removeIf(entry -> entry.getValue().before(now));
+
+        var it = tokenExpireTime.entrySet().iterator();
+        while (it.hasNext()) {
+            var entry = it.next();
+            if (entry.getValue().before(now)) {
+                it.remove();
+                // remove expired token
+                clients.remove(entry.getKey());
+            }
+        }
     }
 }

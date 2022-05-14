@@ -4,23 +4,19 @@ import emu.grasscutter.Grasscutter;
 import emu.grasscutter.plugin.Plugin;
 
 public class OpenCommandPlugin extends Plugin {
-    private OpenCommandHandler handler;
-
     @Override
     public void onLoad() {
-        handler = new OpenCommandHandler();
-    }
 
+    }
 
     @Override
     public void onEnable() {
-        var app = Grasscutter.getDispatchServer().getServer();
-        app.post("/opencommand/api", handler);
-        Grasscutter.getLogger().info("Open command enabled");
+        Grasscutter.getHttpServer().addRouter(OpenCommandHandler.class);
+        Grasscutter.getLogger().info("[OpenCommand] Enabled");
     }
 
     @Override
     public void onDisable() {
-
+        Grasscutter.getLogger().info("[OpenCommand] Disabled");
     }
 }
