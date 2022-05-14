@@ -109,19 +109,27 @@ public final class OpenCommandHandler implements Router {
         } else {
             if (req.action.equals("command")) {
                 // update token expire time
-                tokenExpireTime.put(req.token, new Date(now.getTime() + 24 * 60 * 60 * 1000));
+                tokenExpireTime.put(req.token, new Date(now.getTime() + 4 * 60 * 60 * 1000));
                 var playerId = clients.get(req.token);
                 var player = Grasscutter.getGameServer().getPlayerByUid(playerId);
                 var command = req.data.toString();
-                try {
-                    var resultCollector = new MessageHandler();
-                    player.setMessageHandler(resultCollector);
-                    CommandMap.getInstance().invoke(player, player, command);
-                    response.json(new JsonResponse(resultCollector.getMessage()));
-                } catch (Exception e) {
-                    response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
-                } finally {
-                    player.setMessageHandler(null);
+                if (player == null) {
+                    response.json(new JsonResponse(404, "Player not found"));
+                    return;
+                }
+                // Player MessageHandler do not support concurrency
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                synchronized (player) {
+                    try {
+                        var resultCollector = new MessageHandler();
+                        player.setMessageHandler(resultCollector);
+                        CommandMap.getInstance().invoke(player, player, command);
+                        response.json(new JsonResponse(resultCollector.getMessage()));
+                    } catch (Exception e) {
+                        response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
+                    } finally {
+                        player.setMessageHandler(null);
+                    }
                 }
                 return;
             }
