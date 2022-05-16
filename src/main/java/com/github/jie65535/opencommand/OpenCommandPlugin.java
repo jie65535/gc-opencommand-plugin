@@ -20,20 +20,57 @@ package com.github.jie65535.opencommand;
 import emu.grasscutter.Grasscutter;
 import emu.grasscutter.plugin.Plugin;
 
-public class OpenCommandPlugin extends Plugin {
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+
+public final class OpenCommandPlugin extends Plugin {
+
+    private static OpenCommandPlugin instance;
+    public static OpenCommandPlugin getInstance() { return instance; }
+
+    private OpenCommandConfig config;
+
     @Override
     public void onLoad() {
-
+        instance = this;
+        loadConfig();
     }
 
     @Override
     public void onEnable() {
-        Grasscutter.getHttpServer().addRouter(OpenCommandHandler.class);
-        Grasscutter.getLogger().info("[OpenCommand] Enabled");
+        getHandle().addRouter(OpenCommandHandler.class);
+        getLogger().info("[OpenCommand] Enabled");
     }
 
     @Override
     public void onDisable() {
-        Grasscutter.getLogger().info("[OpenCommand] Disabled");
+        getLogger().info("[OpenCommand] Disabled");
+    }
+
+    public OpenCommandConfig getConfig() {
+        return config;
+    }
+
+    private void loadConfig() {
+        var configFile = new File(getDataFolder(), "config.json");
+        if (!configFile.exists()) {
+            config = new OpenCommandConfig();
+            try (var file = new FileWriter(configFile)){
+                file.write(Grasscutter.getGsonFactory().toJson(config));
+            } catch (IOException e) {
+                getLogger().error("Unable to write to config file.");
+            } catch (Exception e) {
+                getLogger().error("Unable to save config file.");
+            }
+        } else {
+            try (var file = new FileReader(configFile)) {
+                config = Grasscutter.getGsonFactory().fromJson(file, OpenCommandConfig.class);
+            } catch (Exception exception) {
+                config = new OpenCommandConfig();
+                getLogger().error("There was an error while trying to load the configuration from config.json. Please make sure that there are no syntax errors. If you want to start with a default configuration, delete your existing config.json.");
+            }
+        }
     }
 }

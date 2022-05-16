@@ -19,7 +19,6 @@ package com.github.jie65535.opencommand;
 
 import com.github.jie65535.opencommand.json.JsonRequest;
 import com.github.jie65535.opencommand.json.JsonResponse;
-import emu.grasscutter.Grasscutter;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
@@ -32,7 +31,6 @@ import io.javalin.Javalin;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,13 +50,15 @@ public final class OpenCommandHandler implements Router {
     public static void handle(Request request, Response response) {
         // Trigger cleanup action
         cleanupExpiredData();
+        var plugin = OpenCommandPlugin.getInstance();
+        var config = plugin.getConfig();
         var now = new Date();
 
         var req = request.body(JsonRequest.class);
         response.type("application/json");
         if (req.action.equals("sendCode")) {
             int playerId = (int) req.data;
-            var player = Grasscutter.getGameServer().getPlayerByUid(playerId);
+            var player = plugin.getServer().getPlayerByUid(playerId);
             if (player == null) {
                 response.json(new JsonResponse(404, "Player Not Found."));
             } else {
@@ -74,33 +74,53 @@ public final class OpenCommandHandler implements Router {
                 if (token == null || token.isEmpty())
                     token = Utils.bytesToHex(Crypto.createSessionKey(32));
                 int code = Utils.randomRange(1000, 9999);
-                codeExpireTime.put(playerId, new Date(now.getTime() + 60 * 1000));
-                tokenExpireTime.put(token, new Date(now.getTime() + 5 * 60 * 1000));
+                codeExpireTime.put(playerId, new Date(now.getTime() + config.codeExpirationTime_S * 1000L));
+                tokenExpireTime.put(token, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L));
                 codes.put(token, code);
                 clients.put(token, playerId);
-                player.dropMessage("[Open Command] Verification code: {code}".replace("{code}", Integer.toString(code)));
-
+                player.dropMessage("[Open Command] Verification code: " + code);
                 response.json(new JsonResponse(token));
-                return;
             }
+            return;
         } else if (req.action.equals("ping")) {
             response.json(new JsonResponse());
             return;
         }
 
         // token is required
-        if (!clients.containsKey(req.token)) {
+        if (req.token == null || req.token.isEmpty()) {
+            response.json(new JsonResponse(401, "Unauthorized"));
+            return;
+        }
+        var isConsole = req.token.equals(config.consoleToken);
+        if (!isConsole && !clients.containsKey(req.token)) {
             response.json(new JsonResponse(401, "Unauthorized"));
             return;
         }
 
-        if (codes.containsKey(req.token)) {
+        if (isConsole) {
+            if (req.action.equals("verify")) {
+                response.json(new JsonResponse());
+                return;
+            } else if (req.action.equals("command")) {
+                try {
+                    plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
+                    CommandMap.getInstance().invoke(null, null, req.data.toString());
+                    response.json(new JsonResponse());
+                } catch (Exception e) {
+                    plugin.getLogger().warn("Run command failed.", e);
+                    response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
+                }
+                return;
+            }
+        } else if (codes.containsKey(req.token)) {
             if (req.action.equals("verify")) {
                 if (codes.get(req.token).equals(req.data)) {
                     codes.remove(req.token);
                     // update token expire time
-                    tokenExpireTime.put(req.token, new Date(now.getTime() + 60 * 60 * 1000));
+                    tokenExpireTime.put(req.token, new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L));
                     response.json(new JsonResponse());
+                    plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", clients.get(req.token), request.ip()));
                 } else {
                     response.json(new JsonResponse(400, "Verification failed"));
                 }
@@ -109,9 +129,9 @@ public final class OpenCommandHandler implements Router {
         } else {
             if (req.action.equals("command")) {
                 // update token expire time
-                tokenExpireTime.put(req.token, new Date(now.getTime() + 4 * 60 * 60 * 1000));
+                tokenExpireTime.put(req.token, new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L));
                 var playerId = clients.get(req.token);
-                var player = Grasscutter.getGameServer().getPlayerByUid(playerId);
+                var player = plugin.getServer().getPlayerByUid(playerId);
                 var command = req.data.toString();
                 if (player == null) {
                     response.json(new JsonResponse(404, "Player not found"));
@@ -126,6 +146,7 @@ public final class OpenCommandHandler implements Router {
                         CommandMap.getInstance().invoke(player, player, command);
                         response.json(new JsonResponse(resultCollector.getMessage()));
                     } catch (Exception e) {
+                        plugin.getLogger().warn("Run command failed.", e);
                         response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
                     } finally {
                         player.setMessageHandler(null);
