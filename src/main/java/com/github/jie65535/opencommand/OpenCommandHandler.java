@@ -20,6 +20,9 @@ package com.github.jie65535.opencommand;
 import com.github.jie65535.opencommand.json.JsonRequest;
 import com.github.jie65535.opencommand.json.JsonResponse;
 import emu.grasscutter.command.CommandMap;
+import emu.grasscutter.server.event.EventHandler;
+import emu.grasscutter.server.event.HandlerPriority;
+import emu.grasscutter.server.event.game.CommandResponseEvent;
 import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
 import emu.grasscutter.utils.MessageHandler;
@@ -103,13 +106,19 @@ public final class OpenCommandHandler implements Router {
                 response.json(new JsonResponse());
                 return;
             } else if (req.action.equals("command")) {
-                try {
-                    plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
-                    CommandMap.getInstance().invoke(null, null, req.data.toString());
-                    response.json(new JsonResponse());
-                } catch (Exception e) {
-                    plugin.getLogger().warn("Run command failed.", e);
-                    response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                synchronized (plugin) {
+                    try {
+                        plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
+                        var resultCollector = new MessageHandler();
+                        EventListeners.setConsoleMessageHandler(resultCollector);
+                        CommandMap.getInstance().invoke(null, null, req.data.toString());
+                        response.json(new JsonResponse(resultCollector.getMessage()));
+                    } catch (Exception e) {
+                        plugin.getLogger().warn("Run command failed.", e);
+                        EventListeners.setConsoleMessageHandler(null);
+                        response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
+                    }
                 }
                 return;
             }
