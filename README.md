@@ -3,8 +3,14 @@
 一个为第三方客户端开放GC命令执行接口的插件
 
 # 服务端安装
-1. 在 Release 下载 `jar`
+1. 在 [Release](https://github.com/jie65535/gc-opencommand-plugin/releases) 下载 `jar`
 2. 放入 `plugins` 文件夹即可
+
+# 构建说明
+1. 克隆仓库
+2. 在目录下新建 `lib` 目录
+3. 将 `grasscutter-1.1.x-dev.jar` 放入 `lib` 目录
+4. `gradle build`
 
 # 玩家使用流程
 1. 在客户端中填写服务地址，确认是否支持
