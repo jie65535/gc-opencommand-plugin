@@ -1,5 +1,7 @@
 # gc-opencommand-plugin
 
+中文 | [English](README_en-US.md)
+
 一个为第三方客户端开放GC命令执行接口的插件
 
 # 服务端安装
