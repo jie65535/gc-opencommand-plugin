@@ -21,7 +21,7 @@ import emu.grasscutter.Grasscutter;
 import emu.grasscutter.plugin.Plugin;
 import emu.grasscutter.server.event.EventHandler;
 import emu.grasscutter.server.event.HandlerPriority;
-import emu.grasscutter.server.event.game.CommandResponseEvent;
+import emu.grasscutter.server.event.game.ReceiveCommandFeedbackEvent;
 
 import java.io.File;
 import java.io.FileReader;
@@ -43,7 +43,7 @@ public final class OpenCommandPlugin extends Plugin {
 
     @Override
     public void onEnable() {
-        new EventHandler<>(CommandResponseEvent.class)
+        new EventHandler<>(ReceiveCommandFeedbackEvent.class)
                 .priority(HandlerPriority.HIGH)
                 .listener(EventListeners::onCommandResponse)
                 .register();

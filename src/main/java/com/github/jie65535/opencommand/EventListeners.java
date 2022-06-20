@@ -1,6 +1,6 @@
 package com.github.jie65535.opencommand;
 
-import emu.grasscutter.server.event.game.CommandResponseEvent;
+import emu.grasscutter.server.event.game.ReceiveCommandFeedbackEvent;
 import emu.grasscutter.utils.MessageHandler;
 
 public final class EventListeners {
@@ -9,7 +9,7 @@ public final class EventListeners {
     public static void setConsoleMessageHandler(MessageHandler handler) {
         consoleMessageHandler = handler;
     }
-    public static void onCommandResponse(CommandResponseEvent event) {
+    public static void onCommandResponse(ReceiveCommandFeedbackEvent event) {
         if (consoleMessageHandler != null && event.getPlayer() == null) {
             consoleMessageHandler.setMessage(event.getMessage());
         }
