@@ -7,6 +7,14 @@
 ## 服务端安装
 1. 在 [Release](https://github.com/jie65535/gc-opencommand-plugin/releases) 下载 `jar`
 2. 放入 `plugins` 文件夹即可
+> 注意，如果出现以下错误：
+> ```log
+> INFO:PluginManager Enabling plugin: opencommand-plugin
+> Exception in thread "main" java.lang.NoSuchMethodError: 'void emu.grasscutter.server.event.EventHandler.register(emu.grasscutter.plugin.Plugin)'
+> at com.github.jie65535.opencommand.OpenCommandPlugin.onEnable(OpenCommandPlugin.java:49)
+> at emu.grasscutter.plugin.PluginManager.lambda$enablePlugins$3(PluginManager.java:131)
+> ```
+> 请使用v1.2.1版本插件，因为该报错表示你的服务端是旧版！
 
 ## 控制台连接
 1. 首次启动时，会在 `plugins` 目录下生成一个 `opencommand-plugin` 目录，打开并编辑 `config.json`
