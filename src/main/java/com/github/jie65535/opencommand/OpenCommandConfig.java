@@ -22,4 +22,7 @@ public class OpenCommandConfig {
     public int codeExpirationTime_S = 60;
     public int tempTokenExpirationTime_S = 300;
     public int tokenLastUseExpirationTime_H = 48;
+    public int socketPort = 5746;
+    public String socketToken = "";
+    public String socketHost = "127.0.0.1";
 }
