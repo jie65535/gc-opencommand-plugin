@@ -91,6 +91,7 @@ public class SocketServer {
                     mLogger.info("Client {} timeout, disconnect.", clientID);
                     clientList.remove(clientID);
                     clientTimeout.remove(clientID);
+                    SocketData.playerList.remove(clientID);
                 } else {
                     clientTimeout.put(clientID, clientTime + 500);
                 }
