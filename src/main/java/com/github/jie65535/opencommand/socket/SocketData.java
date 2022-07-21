@@ -9,10 +9,10 @@ import java.util.concurrent.atomic.AtomicReference;
 public class SocketData {
     public static HashMap<String, PlayerList> playerList = new HashMap<>();
 
-    public static PlayerList getPlayer(int uid) {
+    public static String getPlayer(int uid) {
         for (PlayerList player : playerList.values()) {
             if (player.playerMap.get(uid) != null) {
-                return player;
+                return player.playerMap.get(uid);
             }
         }
         return null;
