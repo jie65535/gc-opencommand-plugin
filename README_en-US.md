@@ -41,7 +41,10 @@ A plugin that opens the GC command execution interface for third-party clients
   "consoleToken": "",
   "codeExpirationTime_S": 60,
   "tempTokenExpirationTime_S": 300,
-  "tokenLastUseExpirationTime_H": 48
+  "tokenLastUseExpirationTime_H": 48,
+  "socketPort": 5746,
+  "socketToken": "",
+  "socketHost": "127.0.0.1"
 }
 ```
 

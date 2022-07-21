@@ -52,7 +52,13 @@
   // 临时令牌过期时间（秒）
   "tempTokenExpirationTime_S": 300,
   // 授权令牌最后使用过期时间（小时）
-  "tokenLastUseExpirationTime_H": 48
+  "tokenLastUseExpirationTime_H": 48,
+  // 多服务器通信端口
+  "socketPort": 5746,
+  // 多服务器通信密钥
+  "socketToken": "",
+  // 多服务器Dispatch地址
+  "socketHost": "127.0.0.1"
 }
 ```
 
