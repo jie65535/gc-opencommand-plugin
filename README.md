@@ -88,26 +88,84 @@ public final class JsonResponse {
 ```
 
 ### Actions 动作
-#### `ping`
-data = null
+#### `测试连接`
 
-#### `sendCode`
 ##### Request
-data = uid (int)
-##### Response
-data = token (string)
 
-#### `verify` 要求 `token`
-##### Request
-data = code (int)
-##### Response
-###### Success:
-code = 200
-###### Verification failed:
-code = 400
+| 请求参数 |  请求数据  |  类型  |
+| ------- | --------- | ------ |
+| action  | `ping`    |`String`|
 
-#### `command` 要求 `token`
-##### Request
-data = command (string)
 ##### Response
-data = message (string)
+
+| 返回参数 |  返回数据  |  类型  |
+| ------- | --------- | ------ |
+| retcode | `200`     |`String`|
+| message | `success` |`String`|
+| data    | `null`    |`null`  |
+
+#### `发送验证码`
+
+##### Request
+
+| 请求参数 |  请求数据  |  类型  |
+| ------- | --------- | ------ |
+| action  | `sendCode`|`String`|
+| data    | `uid`     |`Int`   |
+
+##### Response
+
+| 返回参数 |  返回数据  |  类型  |
+| ------- | --------- | ------ |
+| retcode | `200`     |`String`|
+| message | `success` |`String`|
+| data    | `token`   |`String`|
+
+
+#### `验证验证码`
+
+##### Request
+
+| 请求参数 |  请求数据  |  类型  |
+| ------- | --------- | ------ |
+| action  | `verify`  |`String`|
+| token   | `token`   |`String`|
+| data    | `code`    |`Int`   |
+
+##### Response
+
+成功
+
+| 返回参数 |  返回数据  |  类型  |
+| ------- | --------- | ------ |
+| retcode | `200`     |`String`|
+| message | `success` |`String`|
+| data    | `null`    | `null` |
+
+失败
+
+| 返回参数 |       返回数据       |  类型  |
+| ------- | -------------------- | ------ |
+| retcode | `400`                |`String`|
+| message | `Verification failed`|`String`|
+| data    | `null`               |`null`  |
+
+#### `执行命令`
+
+##### Request
+
+| 请求参数 |   请求数据  |  类型  |
+| ------- | ----------- | ------ |
+| action  | `command`   |`String`|
+| token   | `token`     |`String`|
+| data    | `command`   |`String`|
+
+##### Response
+
+成功
+
+| 返回参数 |     返回数据     |  类型  |
+| ------- | ---------------- | ------ |
+| retcode | `200`            |`String`|
+| message | `success`        |`String`|
+| data    | `Command return` |`String`|

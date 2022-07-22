@@ -73,27 +73,84 @@ public final class JsonResponse {
 }
 ```
 
-## Actions
-### `ping`
-data = null
+### Actions 
+#### `Test connect`
 
-### `sendCode`
-#### Request
-data = uid (int)
-#### Response
-data = token (string)
+##### Request
 
-### `verify`: Requires `token`
-#### Request
-data = code (int)
-#### Response
-##### Success:
-code = 200
-##### Verification failed:
-code = 400
+| Request |  Request data  |  type  |
+| ------- | -------------- | ------ |
+| action  | `ping`         |`String`|
 
-### `command`: Requires `token`
-#### Request
-data = command (string)
-#### Response
-data = message (string)
+##### Response
+
+| Response |  Response data  |  type  |
+| -------- | --------------- | ------ |
+| retcode  | `200`           |`String`|
+| message  | `success`       |`String`|
+| data     | `null`          |`null`  |
+
+#### `Send code`
+
+##### Request
+
+| Request |  Request data  |  type  |
+| ------- | -------------- | ------ |
+| action  | `sendCode`     |`String`|
+| data    | `uid`          |`Int`   |
+
+##### Response
+
+| Response |  Response data  |  type  |
+| -------- | --------------- | ------ |
+| retcode  | `200`           |`String`|
+| message  | `success`       |`String`|
+| data     | `token`         |`String`|
+
+#### `Verify code`
+
+##### Request
+
+| Request |  Request data  |  type  |
+| ------- | -------------- | ------ |
+| action  | `verify`       |`String`|
+| token   | `token`        |`String`|
+| data    | `code`         |`Int`   |
+
+##### Response
+
+Success
+
+| Response |  Response data  |  type  |
+| -------- | -------------- | ------ |
+| retcode  | `200`          |`String`|
+| message  | `success`      |`String`|
+| data     | `null`         | `null` |
+
+Failed
+
+| Response |    Response data    |  type  |
+| -------- | -------------------- | ------ |
+| retcode  | `400`                |`String`|
+| message  | `Verification failed`|`String`|
+| data     | `null`               |`null`  |
+
+#### `Run command`
+
+##### Request
+
+| Request |  Request data  |  type  |
+| ------- | -------------- | ------ |
+| action  | `command`      |`String`|
+| token   | `token`        |`String`|
+| data    | `command`      |`String`|
+
+##### Response
+
+Success
+
+| Response |   Response data   |  type  |
+| -------- | ------------------ | ------ |
+| retcode  | `200`              |`String`|
+| message  | `success`          |`String`|
+| data     | `Command return`   |`String`|
