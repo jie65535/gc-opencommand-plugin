@@ -4,6 +4,7 @@ import com.github.jie65535.opencommand.OpenCommandConfig;
 import com.github.jie65535.opencommand.OpenCommandPlugin;
 import com.github.jie65535.opencommand.socket.packet.*;
 import com.github.jie65535.opencommand.socket.packet.player.Player;
+import com.github.jie65535.opencommand.socket.packet.player.PlayerList;
 import emu.grasscutter.Grasscutter;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.utils.MessageHandler;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -40,6 +42,7 @@ public class SocketClient {
         }
         timer = new Timer();
         timer.schedule(new SendHeartBeatPacket(), 500);
+        timer.schedule(new SendPlayerListPacket(), 1000);
     }
 
     // 发送数据包
@@ -73,6 +76,23 @@ public class SocketClient {
         public void run() {
             if (connect) {
                 sendPacket(new HeartBeat("Pong"));
+            }
+        }
+    }
+
+    private static class SendPlayerListPacket extends TimerTask {
+        @Override
+        public void run() {
+            if (connect) {
+                PlayerList playerList = new PlayerList();
+                playerList.player = Grasscutter.getGameServer().getPlayers().size();
+                ArrayList<String> playerNames = new ArrayList<>();
+                for (emu.grasscutter.game.player.Player player : Grasscutter.getGameServer().getPlayers().values()) {
+                    playerNames.add(player.getNickname());
+                    playerList.playerMap.put(player.getUid(), player.getNickname());
+                }
+                playerList.playerList = playerNames;
+                sendPacket(playerList);
             }
         }
     }
