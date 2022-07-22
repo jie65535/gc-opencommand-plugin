@@ -24,7 +24,6 @@ public class SocketServer {
     private static final HashMap<String, ClientThread> clientList = new HashMap<>();
 
     private static final HashMap<String, Integer> clientTimeout = new HashMap<>();
-
     private static Logger mLogger;
 
     public static void startServer() throws IOException {
@@ -145,31 +144,40 @@ public class SocketServer {
         public void run() {
             // noinspection InfiniteLoopStatement
             while (true) {
-                String data = SocketUtils.readString(is);
-                Packet packet = Grasscutter.getGsonFactory().fromJson(data, Packet.class);
-                if (packet.token.equals(token)) {
-                    switch (packet.type) {
-                        // 缓存玩家列表
-                        case PlayerList -> {
-                            PlayerList playerList = Grasscutter.getGsonFactory().fromJson(packet.data, PlayerList.class);
-                            SocketData.playerList.put(address, playerList);
-                        }
-                        // Http信息返回
-                        case HttpPacket -> {
-                            HttpPacket httpPacket = Grasscutter.getGsonFactory().fromJson(packet.data, HttpPacket.class);
-                            var socketWait = socketDataWaitList.get(packet.packetID);
-                            if (socketWait == null) {
-                                mLogger.error("HttpPacket: " + packet.packetID + " not found");
-                                return;
+                try {
+                    String data = SocketUtils.readString(is);
+                    Packet packet = Grasscutter.getGsonFactory().fromJson(data, Packet.class);
+                    if (packet.token.equals(token)) {
+                        switch (packet.type) {
+                            // 缓存玩家列表
+                            case PlayerList -> {
+                                PlayerList playerList = Grasscutter.getGsonFactory().fromJson(packet.data, PlayerList.class);
+                                SocketData.playerList.put(address, playerList);
                             }
-                            socketWait.setData(httpPacket);
-                            socketDataWaitList.remove(packet.packetID);
-                        }
-                        // 心跳包
-                        case HeartBeat -> {
-                            clientTimeout.put(address, 0);
+                            // Http信息返回
+                            case HttpPacket -> {
+                                HttpPacket httpPacket = Grasscutter.getGsonFactory().fromJson(packet.data, HttpPacket.class);
+                                var socketWait = socketDataWaitList.get(packet.packetID);
+                                if (socketWait == null) {
+                                    mLogger.error("HttpPacket: " + packet.packetID + " not found");
+                                    return;
+                                }
+                                socketWait.setData(httpPacket);
+                                socketDataWaitList.remove(packet.packetID);
+                            }
+                            // 心跳包
+                            case HeartBeat -> {
+                                clientTimeout.put(address, 0);
+                            }
                         }
                     }
+                } catch (Throwable e) {
+                    e.printStackTrace();
+                    mLogger.error("[OpenCommand] Client {} disconnect.", address);
+                    clientList.remove(address);
+                    clientTimeout.remove(address);
+                    SocketData.playerList.remove(address);
+                    break;
                 }
             }
         }
