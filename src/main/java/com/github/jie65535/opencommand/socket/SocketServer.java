@@ -1,9 +1,7 @@
 package com.github.jie65535.opencommand.socket;
 
 import com.github.jie65535.opencommand.OpenCommandPlugin;
-import com.github.jie65535.opencommand.socket.packet.BasePacket;
-import com.github.jie65535.opencommand.socket.packet.HttpPacket;
-import com.github.jie65535.opencommand.socket.packet.Packet;
+import com.github.jie65535.opencommand.socket.packet.*;
 import com.github.jie65535.opencommand.socket.packet.player.PlayerList;
 import emu.grasscutter.Grasscutter;
 import org.slf4j.Logger;
@@ -87,7 +85,7 @@ public class SocketServer {
                 var clientID = client.getKey();
                 var clientTime = client.getValue();
                 if (clientTime > TIMEOUT) {
-                    mLogger.info("Client {} timeout, disconnect.", clientID);
+                    mLogger.info("[OpenCommand] Client {} timeout, disconnect.", clientID);
                     clientList.remove(clientID);
                     clientTimeout.remove(clientID);
                     SocketData.playerList.remove(clientID);
@@ -105,6 +103,7 @@ public class SocketServer {
         private OutputStream os;
         private final String address;
         private final String token;
+        private boolean auth = false;
 
         private final HashMap<String, SocketDataWait<?>> socketDataWaitList = new HashMap<>();
 
@@ -147,28 +146,44 @@ public class SocketServer {
                 try {
                     String data = SocketUtils.readString(is);
                     Packet packet = Grasscutter.getGsonFactory().fromJson(data, Packet.class);
-                    if (packet.token.equals(token)) {
-                        switch (packet.type) {
-                            // 缓存玩家列表
-                            case PlayerList -> {
-                                PlayerList playerList = Grasscutter.getGsonFactory().fromJson(packet.data, PlayerList.class);
-                                SocketData.playerList.put(address, playerList);
+                    if (packet.type == PacketEnum.AuthPacket) {
+                        AuthPacket authPacket = Grasscutter.getGsonFactory().fromJson(data, AuthPacket.class);
+                        if (authPacket.token.equals(token)) {
+                            auth = true;
+                            mLogger.info("[OpenCommand] Client {} auth success", address);
+                            clientList.put(address, this);
+                            clientTimeout.put(address, 0);
+                        } else {
+                            mLogger.warn("[OpenCommand] Client {} auth failed", address);
+                            socket.close();
+                            return;
+                        }
+                    }
+                    if (!auth) {
+                        mLogger.warn("[OpenCommand] Client {} auth failed", address);
+                        socket.close();
+                        return;
+                    }
+                    switch (packet.type) {
+                        // 缓存玩家列表
+                        case PlayerList -> {
+                            PlayerList playerList = Grasscutter.getGsonFactory().fromJson(packet.data, PlayerList.class);
+                            SocketData.playerList.put(address, playerList);
+                        }
+                        // Http信息返回
+                        case HttpPacket -> {
+                            HttpPacket httpPacket = Grasscutter.getGsonFactory().fromJson(packet.data, HttpPacket.class);
+                            var socketWait = socketDataWaitList.get(packet.packetID);
+                            if (socketWait == null) {
+                                mLogger.error("[OpenCommand] HttpPacket: " + packet.packetID + " not found");
+                                return;
                             }
-                            // Http信息返回
-                            case HttpPacket -> {
-                                HttpPacket httpPacket = Grasscutter.getGsonFactory().fromJson(packet.data, HttpPacket.class);
-                                var socketWait = socketDataWaitList.get(packet.packetID);
-                                if (socketWait == null) {
-                                    mLogger.error("HttpPacket: " + packet.packetID + " not found");
-                                    return;
-                                }
-                                socketWait.setData(httpPacket);
-                                socketDataWaitList.remove(packet.packetID);
-                            }
-                            // 心跳包
-                            case HeartBeat -> {
-                                clientTimeout.put(address, 0);
-                            }
+                            socketWait.setData(httpPacket);
+                            socketDataWaitList.remove(packet.packetID);
+                        }
+                        // 心跳包
+                        case HeartBeat -> {
+                            clientTimeout.put(address, 0);
                         }
                     }
                 } catch (Throwable e) {
@@ -194,16 +209,14 @@ public class SocketServer {
 
         @Override
         public void run() {
-            mLogger.info("Start socket server on port " + socketServer.getLocalPort());
+            mLogger.info("[OpenCommand] Start socket server on port " + socketServer.getLocalPort());
             // noinspection InfiniteLoopStatement
             while (true) {
                 try {
                     Socket accept = socketServer.accept();
                     String address = accept.getInetAddress() + ":" + accept.getPort();
-                    mLogger.info("Client connect: " + address);
-                    ClientThread clientThread = new ClientThread(accept);
-                    clientList.put(address, clientThread);
-                    clientTimeout.put(address, 0);
+                    mLogger.info("[OpenCommand] Client connect: " + address);
+                    new ClientThread(accept);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

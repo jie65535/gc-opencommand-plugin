@@ -2,10 +2,7 @@ package com.github.jie65535.opencommand.socket;
 
 import com.github.jie65535.opencommand.OpenCommandConfig;
 import com.github.jie65535.opencommand.OpenCommandPlugin;
-import com.github.jie65535.opencommand.socket.packet.BasePacket;
-import com.github.jie65535.opencommand.socket.packet.HeartBeat;
-import com.github.jie65535.opencommand.socket.packet.HttpPacket;
-import com.github.jie65535.opencommand.socket.packet.Packet;
+import com.github.jie65535.opencommand.socket.packet.*;
 import com.github.jie65535.opencommand.socket.packet.player.Player;
 import emu.grasscutter.Grasscutter;
 import emu.grasscutter.command.CommandMap;
@@ -29,8 +26,11 @@ public class SocketClient {
 
     public static boolean connect = false;
 
+    public static ReceiveThread receiveThread;
+
     // 连接服务器
     public static void connectServer() {
+        if (connect) return;
         OpenCommandConfig config = OpenCommandPlugin.getInstance().getConfig();
         mLogger = OpenCommandPlugin.getInstance().getLogger();
         clientThread = new ClientThread(config.socketHost, config.socketPort);
@@ -80,10 +80,9 @@ public class SocketClient {
     // 数据包接收
     private static class ReceiveThread extends Thread {
         private InputStream is;
-        private String token;
+        private boolean exit = false;
 
         public ReceiveThread(Socket socket) {
-            token = OpenCommandPlugin.getInstance().getConfig().socketToken;
             try {
                 is = socket.getInputStream();
             } catch (IOException e) {
@@ -97,54 +96,62 @@ public class SocketClient {
             //noinspection InfiniteLoopStatement
             while (true) {
                 try {
+                    if (exit) {
+                        return;
+                    }
                     String data = SocketUtils.readString(is);
                     Packet packet = Grasscutter.getGsonFactory().fromJson(data, Packet.class);
-                    if (packet.token.equals(token)) {
-                        switch (packet.type) {
-                            // 玩家类
-                            case Player:
-                                var player = Grasscutter.getGsonFactory().fromJson(packet.data, Player.class);
-                                switch (player.type) {
-                                    // 运行命令
-                                    case RunCommand -> {
-                                        var command = player.data;
-                                        var playerData = OpenCommandPlugin.getInstance().getServer().getPlayerByUid(player.uid);
-                                        if (playerData == null) {
-                                            sendPacket(new HttpPacket(404, "Player not found."), packet.packetID);
-                                            return;
-                                        }
-                                        // Player MessageHandler do not support concurrency
-                                        //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                                        synchronized (playerData) {
-                                            try {
-                                                var resultCollector = new MessageHandler();
-                                                playerData.setMessageHandler(resultCollector);
-                                                CommandMap.getInstance().invoke(playerData, playerData, command);
-                                                sendPacket(new HttpPacket(200, resultCollector.getMessage()), packet.packetID);
-                                            } catch (Exception e) {
-                                                OpenCommandPlugin.getInstance().getLogger().warn("Run command failed.", e);
-                                                sendPacket(new HttpPacket(500, "error", e.getLocalizedMessage()), packet.packetID);
-                                            } finally {
-                                                playerData.setMessageHandler(null);
-                                            }
-                                        }
+                    switch (packet.type) {
+                        // 玩家类
+                        case Player:
+                            var player = Grasscutter.getGsonFactory().fromJson(packet.data, Player.class);
+                            switch (player.type) {
+                                // 运行命令
+                                case RunCommand -> {
+                                    var command = player.data;
+                                    var playerData = OpenCommandPlugin.getInstance().getServer().getPlayerByUid(player.uid);
+                                    if (playerData == null) {
+                                        sendPacket(new HttpPacket(404, "Player not found."), packet.packetID);
+                                        return;
                                     }
-                                    // 发送信息
-                                    case DropMessage -> {
-                                        var playerData = OpenCommandPlugin.getInstance().getServer().getPlayerByUid(player.uid);
-                                        if (playerData == null) {
-                                            return;
+                                    // Player MessageHandler do not support concurrency
+                                    //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                                    synchronized (playerData) {
+                                        try {
+                                            var resultCollector = new MessageHandler();
+                                            playerData.setMessageHandler(resultCollector);
+                                            CommandMap.getInstance().invoke(playerData, playerData, command);
+                                            sendPacket(new HttpPacket(200, resultCollector.getMessage()), packet.packetID);
+                                        } catch (Exception e) {
+                                            OpenCommandPlugin.getInstance().getLogger().warn("[OpenCommand] Run command failed.", e);
+                                            sendPacket(new HttpPacket(500, "error", e.getLocalizedMessage()), packet.packetID);
+                                        } finally {
+                                            playerData.setMessageHandler(null);
                                         }
-                                        playerData.dropMessage(player.data);
                                     }
                                 }
-                                break;
-                        }
+                                // 发送信息
+                                case DropMessage -> {
+                                    var playerData = OpenCommandPlugin.getInstance().getServer().getPlayerByUid(player.uid);
+                                    if (playerData == null) {
+                                        return;
+                                    }
+                                    playerData.dropMessage(player.data);
+                                }
+                            }
+                            break;
                     }
                 } catch (Throwable e) {
                     e.printStackTrace();
+                    if (!sendPacket(new HeartBeat("Pong"))) {
+                        return;
+                    }
                 }
             }
+        }
+
+        public void exit() {
+            exit = true;
         }
     }
 
@@ -172,17 +179,26 @@ public class SocketClient {
         @Override
         public void run() {
             try {
-                socket = new Socket(ip, port);
                 connect = true;
+                if (receiveThread != null) {
+                    receiveThread.exit();
+                }
+
+                socket = new Socket(ip, port);
                 os = socket.getOutputStream();
-                mLogger.info("Connect to server: " + ip + ":" + port);
-                new ReceiveThread(socket);
+                mLogger.info("[OpenCommand]Connect to server: " + ip + ":" + port);
+                SocketClient.sendPacket(new AuthPacket(OpenCommandPlugin.getInstance().getConfig().socketToken));
+                receiveThread = new ReceiveThread(socket);
             } catch (IOException e) {
                 connect = false;
-                mLogger.warn("Connect to server failed: " + ip + ":" + port);
-                mLogger.warn("[OpenCommand] Reconnect to server");
+                mLogger.warn("[OpenCommand]Connect to server failed: " + ip + ":" + port);
+                mLogger.warn("[OpenCommand] Retry connecting to the server after 15 seconds");
+                try {
+                    Thread.sleep(15000);
+                } catch (InterruptedException ex) {
+                    throw new RuntimeException(ex);
+                }
                 connectServer();
-                throw new RuntimeException(e);
             }
         }
     }
