@@ -64,7 +64,7 @@
   "socketPort": 5746,
   // 多服务器通信密钥
   "socketToken": "",
-  // 多服务器Dispatch地址
+  // 多服务器Dispatch服务器地址
   "socketHost": "127.0.0.1",
   // 多服务器显示名称
   "socketDisplayName": ""
