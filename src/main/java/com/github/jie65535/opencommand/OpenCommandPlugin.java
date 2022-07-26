@@ -35,7 +35,10 @@ import java.io.IOException;
 public final class OpenCommandPlugin extends Plugin {
 
     private static OpenCommandPlugin instance;
-    public static OpenCommandPlugin getInstance() { return instance; }
+
+    public static OpenCommandPlugin getInstance() {
+        return instance;
+    }
 
     private OpenCommandConfig config;
 
@@ -82,19 +85,19 @@ public final class OpenCommandPlugin extends Plugin {
         var configFile = new File(getDataFolder(), "config.json");
         if (!configFile.exists()) {
             config = new OpenCommandConfig();
-            try (var file = new FileWriter(configFile)){
+            try (var file = new FileWriter(configFile)) {
                 file.write(Grasscutter.getGsonFactory().toJson(config));
             } catch (IOException e) {
-                getLogger().error("Unable to write to config file.");
+                getLogger().error("[OpenCommand] Unable to write to config file.");
             } catch (Exception e) {
-                getLogger().error("Unable to save config file.");
+                getLogger().error("[OpenCommand] Unable to save config file.");
             }
         } else {
             try (var file = new FileReader(configFile)) {
                 config = Grasscutter.getGsonFactory().fromJson(file, OpenCommandConfig.class);
             } catch (Exception exception) {
                 config = new OpenCommandConfig();
-                getLogger().error("There was an error while trying to load the configuration from config.json. Please make sure that there are no syntax errors. If you want to start with a default configuration, delete your existing config.json.");
+                getLogger().error("[OpenCommand] There was an error while trying to load the configuration from config.json. Please make sure that there are no syntax errors. If you want to start with a default configuration, delete your existing config.json.");
             }
         }
         // 启动Socket
@@ -110,7 +113,7 @@ public final class OpenCommandPlugin extends Plugin {
             try {
                 SocketServer.startServer();
             } catch (IOException e) {
-                getLogger().error("Unable to start socket server.", e);
+                getLogger().error("[OpenCommand] Unable to start socket server.", e);
             }
         }
     }

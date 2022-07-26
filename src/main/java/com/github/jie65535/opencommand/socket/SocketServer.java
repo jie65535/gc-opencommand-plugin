@@ -14,15 +14,33 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 
 // Socket 服务器
 public class SocketServer {
     // 客户端超时时间
     private static final int TIMEOUT = 5000;
-    private static final HashMap<String, ClientThread> clientList = new HashMap<>();
+    private static final HashMap<String, ClientInfo> clientList = new HashMap<>();
 
     private static final HashMap<String, Integer> clientTimeout = new HashMap<>();
     private static Logger mLogger;
+
+    public static HashMap<String, String> getOnlineClient() {
+        HashMap<String, String> onlineClient = new HashMap<>();
+        for (var key : clientList.entrySet()) {
+            onlineClient.put(key.getValue().uuid, key.getValue().clientThread.getDisplayName());
+        }
+        return onlineClient;
+    }
+
+    public static ClientInfo getClientInfoByUuid(String uuid) {
+        for (var key : clientList.entrySet()) {
+            if (key.getValue().uuid.equals(uuid)) {
+                return key.getValue();
+            }
+        }
+        return null;
+    }
 
     public static void startServer() throws IOException {
         int port = OpenCommandPlugin.getInstance().getConfig().socketPort;
@@ -34,7 +52,7 @@ public class SocketServer {
     // 向全部客户端发送数据
     public static boolean sendAllPacket(BasePacket packet) {
         var p = SocketUtils.getPacket(packet);
-        HashMap<String, ClientThread>  old = (HashMap<String, ClientThread>) clientList.clone();
+        HashMap<String, ClientThread> old = (HashMap<String, ClientThread>) clientList.clone();
         for (var client : old.entrySet()) {
             if (!client.getValue().sendPacket(p)) {
                 mLogger.warn("[OpenCommand] Send packet to client {} failed", client.getKey());
@@ -49,7 +67,21 @@ public class SocketServer {
         var p = SocketUtils.getPacket(packet);
         var client = clientList.get(address);
         if (client != null) {
-            if (client.sendPacket(p)) {
+            if (client.clientThread.sendPacket(p)) {
+                return true;
+            }
+            mLogger.warn("[OpenCommand] Send packet to client {} failed", address);
+            clientList.remove(address);
+        }
+        return false;
+    }
+
+    public static boolean sendPacketAndWait(String address, BasePacket packet, SocketDataWait<?> wait) {
+        var p = SocketUtils.getPacketAndPackID(packet);
+        var client = clientList.get(address);
+        if (client != null) {
+            wait.uid = p.get(0);
+            if (client.clientThread.sendPacket(p.get(1), wait)) {
                 return true;
             }
             mLogger.warn("[OpenCommand] Send packet to client {} failed", address);
@@ -66,7 +98,7 @@ public class SocketServer {
         var client = clientList.get(clientID);
         if (client != null) {
             socketDataWait.uid = p.get(0);
-            if (!client.sendPacket(p.get(1), socketDataWait)) {
+            if (!client.clientThread.sendPacket(p.get(1), socketDataWait)) {
                 mLogger.warn("[OpenCommand] Send packet to client {} failed", clientID);
                 clientList.remove(clientID);
                 return false;
@@ -97,13 +129,14 @@ public class SocketServer {
     }
 
     // 客户端数据包处理
-    private static class ClientThread extends Thread {
+    static class ClientThread extends Thread {
         private final Socket socket;
         private InputStream is;
         private OutputStream os;
         private final String address;
         private final String token;
         private boolean auth = false;
+        private String displayName = "";
 
         private final HashMap<String, SocketDataWait<?>> socketDataWaitList = new HashMap<>();
 
@@ -147,11 +180,12 @@ public class SocketServer {
                     String data = SocketUtils.readString(is);
                     Packet packet = Grasscutter.getGsonFactory().fromJson(data, Packet.class);
                     if (packet.type == PacketEnum.AuthPacket) {
-                        AuthPacket authPacket = Grasscutter.getGsonFactory().fromJson(data, AuthPacket.class);
+                        AuthPacket authPacket = Grasscutter.getGsonFactory().fromJson(packet.data, AuthPacket.class);
                         if (authPacket.token.equals(token)) {
                             auth = true;
-                            mLogger.info("[OpenCommand] Client {} auth success", address);
-                            clientList.put(address, this);
+                            displayName = authPacket.displayName;
+                            mLogger.info("[OpenCommand] Client {} auth success, name: {}", address, displayName);
+                            clientList.put(address, new ClientInfo(UUID.randomUUID().toString(), address, this));
                             clientTimeout.put(address, 0);
                         } else {
                             mLogger.warn("[OpenCommand] Client {} auth failed", address);
@@ -195,6 +229,10 @@ public class SocketServer {
                     break;
                 }
             }
+        }
+
+        public String getDisplayName() {
+            return displayName;
         }
     }
 

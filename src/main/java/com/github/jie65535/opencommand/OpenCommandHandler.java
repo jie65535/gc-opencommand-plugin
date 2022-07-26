@@ -19,6 +19,7 @@ package com.github.jie65535.opencommand;
 
 import com.github.jie65535.opencommand.json.JsonRequest;
 import com.github.jie65535.opencommand.json.JsonResponse;
+import com.github.jie65535.opencommand.socket.SocketData;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
@@ -31,6 +32,7 @@ import io.javalin.Javalin;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -85,6 +87,11 @@ public final class OpenCommandHandler implements Router {
         } else if (req.action.equals("ping")) {
             response.json(new JsonResponse());
             return;
+        } else if (req.action.equals("online")) {
+            var p = new ArrayList<String>();
+            plugin.getServer().getPlayers().forEach((uid, player) -> p.add(player.getNickname()));
+            response.json(new JsonResponse(200, "Success", new SocketData.OnlinePlayer(p)));
+            return;
         }
 
         // token is required
@@ -117,6 +124,9 @@ public final class OpenCommandHandler implements Router {
                         response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
                     }
                 }
+                return;
+            } else if (req.action.equals("runmode")) {
+                response.json(new JsonResponse(200, "Success", 0));
                 return;
             }
         } else if (codes.containsKey(req.token)) {

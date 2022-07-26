@@ -1,5 +1,6 @@
 package com.github.jie65535.opencommand.socket;
 
+import com.github.jie65535.opencommand.EventListeners;
 import com.github.jie65535.opencommand.OpenCommandConfig;
 import com.github.jie65535.opencommand.OpenCommandPlugin;
 import com.github.jie65535.opencommand.socket.packet.*;
@@ -33,6 +34,14 @@ public class SocketClient {
     // 连接服务器
     public static void connectServer() {
         if (connect) return;
+        if (clientThread != null) {
+            mLogger.warn("[OpenCommand] Retry connecting to the server after 15 seconds");
+            try {
+                Thread.sleep(15000);
+            } catch (InterruptedException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
         OpenCommandConfig config = OpenCommandPlugin.getInstance().getConfig();
         mLogger = OpenCommandPlugin.getInstance().getLogger();
         clientThread = new ClientThread(config.socketHost, config.socketPort);
@@ -160,6 +169,24 @@ public class SocketClient {
                                 }
                             }
                             break;
+                        case RunConsoleCommand:
+                            var consoleCommand = Grasscutter.getGsonFactory().fromJson(packet.data, RunConsoleCommand.class);
+                            var plugin = OpenCommandPlugin.getInstance();
+                            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                            synchronized (plugin) {
+                                try {
+                                    var resultCollector = new MessageHandler();
+                                    EventListeners.setConsoleMessageHandler(resultCollector);
+                                    CommandMap.getInstance().invoke(null, null, consoleCommand.command);
+                                    sendPacket(new HttpPacket(resultCollector.getMessage()), packet.packetID);
+                                } catch (Exception e) {
+                                    mLogger.warn("[OpenCommand] Run command failed.", e);
+                                    EventListeners.setConsoleMessageHandler(null);
+                                    sendPacket(new HttpPacket(500, "error", e.getLocalizedMessage()), packet.packetID);
+                                } finally {
+                                    EventListeners.setConsoleMessageHandler(null);
+                                }
+                            }
                     }
                 } catch (Throwable e) {
                     e.printStackTrace();
@@ -206,18 +233,12 @@ public class SocketClient {
 
                 socket = new Socket(ip, port);
                 os = socket.getOutputStream();
-                mLogger.info("[OpenCommand]Connect to server: " + ip + ":" + port);
-                SocketClient.sendPacket(new AuthPacket(OpenCommandPlugin.getInstance().getConfig().socketToken));
+                mLogger.info("[OpenCommand] Connect to server: " + ip + ":" + port);
+                SocketClient.sendPacket(new AuthPacket(OpenCommandPlugin.getInstance().getConfig().socketToken, OpenCommandPlugin.getInstance().getConfig().socketDisplayName));
                 receiveThread = new ReceiveThread(socket);
             } catch (IOException e) {
                 connect = false;
-                mLogger.warn("[OpenCommand]Connect to server failed: " + ip + ":" + port);
-                mLogger.warn("[OpenCommand] Retry connecting to the server after 15 seconds");
-                try {
-                    Thread.sleep(15000);
-                } catch (InterruptedException ex) {
-                    throw new RuntimeException(ex);
-                }
+                mLogger.warn("[OpenCommand] Connect to server failed: " + ip + ":" + port);
                 connectServer();
             }
         }

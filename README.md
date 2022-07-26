@@ -5,8 +5,10 @@
 一个为第三方客户端开放GC命令执行接口的插件
 
 ## 服务端安装
+
 1. 在 [Release](https://github.com/jie65535/gc-opencommand-plugin/releases) 下载 `jar`
 2. 放入 `plugins` 文件夹即可
+
 > 注意，如果出现以下错误：
 > ```log
 > INFO:PluginManager Enabling plugin: opencommand-plugin
@@ -17,24 +19,28 @@
 > 请使用v1.2.1版本插件，因为该报错表示你的服务端是旧版！
 
 ## 控制台连接
+
 1. 首次启动时，会在 `plugins` 目录下生成一个 `opencommand-plugin` 目录，打开并编辑 `config.json`
 2. 设置 `consoleToken` 的值为你的连接秘钥，建议使用至少32字符的长随机字符串。
 3. 重新启动服务端即可生效配置
 4. 在客户端中选择控制台身份，并填写你的 `consoleToken` 即可以控制台身份运行指令
 
 ## 构建说明
+
 1. 克隆仓库
 2. 在目录下新建 `lib` 目录
 3. 将 `grasscutter-1.1.x-dev.jar` 放入 `lib` 目录
 4. `gradle build`
 
 ## 玩家使用流程
+
 1. 在客户端中填写服务地址，确认是否支持
 2. 填写UID，发送验证码
 3. 将游戏内收到的**4位整数验证码**填入客户端校验
 4. 享受便利！
 
 ## 客户端请求流程
+
 1. `ping` 确认是否支持 `opencommand` 插件
 2. `sendCode` 向指定玩家发送验证码（1分钟内不允许重发），保存返回的 `token`
 3. 使用 `token` 和**4位整数验证码**发送 `verify` 校验
@@ -43,6 +49,7 @@
 ---
 
 ## `config.json`
+
 ```json
 {
   // 控制台连接令牌
@@ -58,114 +65,210 @@
   // 多服务器通信密钥
   "socketToken": "",
   // 多服务器Dispatch地址
-  "socketHost": "127.0.0.1"
+  "socketHost": "127.0.0.1",
+  // 多服务器显示名称
+  "socketDisplayName": ""
 }
 ```
 
-
 ## API `/opencommand/api`
+
 示例
+
 ```
 https://127.0.0.1/opencommand/api
 ```
 
 ### Request 请求
+
 ```java
 public final class JsonRequest {
     public String token = "";
     public String action = "";
+    public String server = "";
     public Object data = null;
 }
 ```
 
 ### Response 响应
+
 ```java
 public final class JsonResponse {
     public int retcode = 200;
-    public String message = "success";
+    public String message = "Success";
     public Object data;
 }
 ```
 
 ### Actions 动作
+
 #### `测试连接`
 
 ##### Request
 
-| 请求参数 |  请求数据  |  类型  |
-| ------- | --------- | ------ |
-| action  | `ping`    |`String`|
+| 请求参数   | 请求数据   | 类型       |
+|--------|--------|----------|
+| action | `ping` | `String` |
 
 ##### Response
 
-| 返回参数 |  返回数据  |  类型  |
-| ------- | --------- | ------ |
-| retcode | `200`     |`String`|
-| message | `success` |`String`|
-| data    | `null`    |`null`  |
+| 返回参数    | 返回数据      | 类型       |
+|---------|-----------|----------|
+| retcode | `200`     | `Int`    |
+| message | `Success` | `String` |
+| data    | `null`    | `null`   |
+
+
+#### `获取在线玩家`
+
+##### Request
+
+| 请求参数   | 请求数据     | 类型       |
+|--------|----------|----------|
+| action | `online` | `String` |
+
+##### Response
+
+| 返回参数    | 返回数据                            | 类型           |
+|---------|---------------------------------|--------------|
+| retcode | `200`                           | `Int`        |
+| message | `Success`                       | `String`     |
+| data    | `{"count": 0, playerList": []}` | `JsonObject` |
 
 #### `发送验证码`
 
 ##### Request
 
-| 请求参数 |  请求数据  |  类型  |
-| ------- | --------- | ------ |
-| action  | `sendCode`|`String`|
-| data    | `uid`     |`Int`   |
+| 请求参数   | 请求数据       | 类型       |
+|--------|------------|----------|
+| action | `sendCode` | `String` |
+| data   | `uid`      | `Int`    |
 
 ##### Response
 
-| 返回参数 |  返回数据  |  类型  |
-| ------- | --------- | ------ |
-| retcode | `200`     |`String`|
-| message | `success` |`String`|
-| data    | `token`   |`String`|
-
+| 返回参数    | 返回数据      | 类型       |
+|---------|-----------|----------|
+| retcode | `200`     | `Int`    |
+| message | `Success` | `String` |
+| data    | `token`   | `String` |
 
 #### `验证验证码`
 
 ##### Request
 
-| 请求参数 |  请求数据  |  类型  |
-| ------- | --------- | ------ |
-| action  | `verify`  |`String`|
-| token   | `token`   |`String`|
-| data    | `code`    |`Int`   |
+| 请求参数   | 请求数据     | 类型       |
+|--------|----------|----------|
+| action | `verify` | `String` |
+| token  | `token`  | `String` |
+| data   | `code`   | `Int`    |
 
 ##### Response
 
 成功
 
-| 返回参数 |  返回数据  |  类型  |
-| ------- | --------- | ------ |
-| retcode | `200`     |`String`|
-| message | `success` |`String`|
-| data    | `null`    | `null` |
+| 返回参数    | 返回数据      | 类型       |
+|---------|-----------|----------|
+| retcode | `200`     | `Int`    |
+| message | `Success` | `String` |
+| data    | `null`    | `null`   |
 
 失败
 
-| 返回参数 |       返回数据       |  类型  |
-| ------- | -------------------- | ------ |
-| retcode | `400`                |`String`|
-| message | `Verification failed`|`String`|
-| data    | `null`               |`null`  |
+| 返回参数    | 返回数据                  | 类型       |
+|---------|-----------------------|----------|
+| retcode | `400`                 | `Int`    |
+| message | `Verification failed` | `String` |
+| data    | `null`                | `null`   |
 
 #### `执行命令`
 
 ##### Request
 
-| 请求参数 |   请求数据  |  类型  |
-| ------- | ----------- | ------ |
-| action  | `command`   |`String`|
-| token   | `token`     |`String`|
-| data    | `command`   |`String`|
+| 请求参数   | 请求数据      | 类型       |
+|--------|-----------|----------|
+| action | `command` | `String` |
+| token  | `token`   | `String` |
+| data   | `command` | `String` |
 
 ##### Response
 
 成功
 
-| 返回参数 |     返回数据     |  类型  |
-| ------- | ---------------- | ------ |
-| retcode | `200`            |`String`|
-| message | `success`        |`String`|
-| data    | `Command return` |`String`|
+| 返回参数    | 返回数据             | 类型       |
+|---------|------------------|----------|
+| retcode | `200`            | `Int`    |
+| message | `Success`        | `String` |
+| data    | `Command return` | `String` |
+
+### 执行控制台命令
+
+#### `获取运行模式`
+
+##### Request
+
+| 请求参数   | 请求数据      | 类型       |
+|--------|-----------|----------|
+| action | `runmode` | `String` |
+| token  | `token`   | `String` |
+
+##### Response
+
+成功
+
+| 返回参数    | 返回数据                  | 类型       |
+|---------|-----------------------|----------|
+| retcode | `200`                 | `Int`    |
+| message | `Success`             | `String` |
+| data    | `1 (多服务器) / 0 (单服务器)` | `Int`    |
+
+#### `获取多服务器列表`
+
+##### Request
+
+| 请求参数   | 请求数据     | 类型       |
+|--------|----------|----------|
+| action | `server` | `String` |
+| token  | `token`  | `String` |
+
+##### Response
+
+成功
+
+| 返回参数    | 返回数据      | 类型           |
+|---------|-----------|--------------|
+| retcode | `200`     | `Int`        |
+| message | `Success` | `String`     |
+| data    | `{}`      | `JsonObject` |
+
+```json
+{
+    "retcode": 200,
+    "message": "success",
+    "data": {
+        // 服务器 UUID
+        "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 服务器",
+        "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 开发服务器"
+    }
+}
+```
+
+#### `执行命令`
+
+##### Request
+
+| 请求参数   | 请求数据      | 类型       |
+|--------|-----------|----------|
+| action | `command` | `String` |
+| token  | `token`   | `String` |
+| server | `UUID`    | `String` |
+| data   | `command` | `String` |
+
+##### Response
+
+成功
+
+| 返回参数    | 返回数据             | 类型       |
+|---------|------------------|----------|
+| retcode | `200`            | `Int`    |
+| message | `Success`        | `String` |
+| data    | `Command return` | `String` |

@@ -4,8 +4,10 @@ import emu.grasscutter.Grasscutter;
 
 public class AuthPacket extends BasePacket {
     public String token;
+    public String displayName;
 
-    public AuthPacket(String token) {
+    public AuthPacket(String token, String displayName) {
+        this.displayName = displayName;
         this.token = token;
     }
 
@@ -17,5 +19,10 @@ public class AuthPacket extends BasePacket {
     @Override
     public PacketEnum getType() {
         return PacketEnum.AuthPacket;
+    }
+
+    @Override
+    public String toString() {
+        return "AuthPacket [token=" + token + ", displayName=" + displayName + "]";
     }
 }

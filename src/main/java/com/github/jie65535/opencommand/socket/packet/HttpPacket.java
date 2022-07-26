@@ -4,8 +4,8 @@ import emu.grasscutter.Grasscutter;
 
 // http返回数据
 public class HttpPacket extends BasePacket {
-    public int code;
-    public String message;
+    public int code = 200;
+    public String message = "Success";
     public String data;
 
     public HttpPacket(int code, String message, String data) {
@@ -17,6 +17,9 @@ public class HttpPacket extends BasePacket {
     public HttpPacket(int code, String message) {
         this.code = code;
         this.message = message;
+    }
+    public HttpPacket(String data) {
+        this.data = data;
     }
 
     @Override

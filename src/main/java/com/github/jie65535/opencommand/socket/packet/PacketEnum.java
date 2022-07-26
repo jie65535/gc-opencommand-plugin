@@ -6,5 +6,6 @@ public enum PacketEnum {
     Player,
     HttpPacket,
     AuthPacket,
+    RunConsoleCommand,
     HeartBeat
 }

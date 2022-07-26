@@ -2,6 +2,7 @@ package com.github.jie65535.opencommand.socket;
 
 import com.github.jie65535.opencommand.socket.packet.player.PlayerList;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -26,5 +27,22 @@ public class SocketData {
             }
         });
         return ret.get();
+    }
+
+    public static OnlinePlayer getOnlinePlayer() {
+        ArrayList<String> player = new ArrayList<>();
+        playerList.forEach((address, playerMap) -> playerMap.playerMap.forEach((uid, name) -> player.add(name)));
+        return new OnlinePlayer(player);
+    }
+
+    public static class OnlinePlayer {
+        public int count;
+        public ArrayList<String> playerList;
+
+        public OnlinePlayer(ArrayList<String> playerList) {
+            this.playerList = playerList;
+            this.count = playerList.size();
+        }
+
     }
 }

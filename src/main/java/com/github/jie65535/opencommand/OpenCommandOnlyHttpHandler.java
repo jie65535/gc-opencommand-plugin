@@ -23,6 +23,7 @@ import com.github.jie65535.opencommand.socket.SocketData;
 import com.github.jie65535.opencommand.socket.SocketDataWait;
 import com.github.jie65535.opencommand.socket.SocketServer;
 import com.github.jie65535.opencommand.socket.packet.HttpPacket;
+import com.github.jie65535.opencommand.socket.packet.RunConsoleCommand;
 import com.github.jie65535.opencommand.socket.packet.player.Player;
 import com.github.jie65535.opencommand.socket.packet.player.PlayerEnum;
 import emu.grasscutter.command.CommandMap;
@@ -92,6 +93,9 @@ public final class OpenCommandOnlyHttpHandler implements Router {
         } else if (req.action.equals("ping")) {
             response.json(new JsonResponse());
             return;
+        } else if (req.action.equals("online")) {
+            response.json(new JsonResponse(200, "Success", SocketData.getOnlinePlayer()));
+            return;
         }
 
         // token is required
@@ -110,20 +114,40 @@ public final class OpenCommandOnlyHttpHandler implements Router {
                 response.json(new JsonResponse());
                 return;
             } else if (req.action.equals("command")) {
-                //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                synchronized (plugin) {
-                    try {
-                        plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
-                        var resultCollector = new MessageHandler();
-                        EventListeners.setConsoleMessageHandler(resultCollector);
-                        CommandMap.getInstance().invoke(null, null, req.data.toString());
-                        response.json(new JsonResponse(resultCollector.getMessage()));
-                    } catch (Exception e) {
-                        plugin.getLogger().warn("Run command failed.", e);
-                        EventListeners.setConsoleMessageHandler(null);
-                        response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
-                    }
+                var server = SocketServer.getClientInfoByUuid(req.server);
+                if (server == null) {
+                    response.json(new JsonResponse(404, "Server Not Found."));
+                    return;
                 }
+                plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
+                var wait = new SocketDataWait<HttpPacket>(2000L) {
+                    @Override
+                    public void run() {
+                    }
+
+                    @Override
+                    public HttpPacket initData(HttpPacket data) {
+                        return data;
+                    }
+
+                    @Override
+                    public void timeout() {
+                    }
+                };
+
+                SocketServer.sendPacketAndWait(server.ip, new RunConsoleCommand(req.data.toString()), wait);
+                var data = wait.getData();
+                if (data == null) {
+                    response.json(new JsonResponse(408, "Timeout"));
+                    return;
+                }
+                response.json(new JsonResponse(data.code, data.message, data.data));
+                return;
+            } else if (req.action.equals("server")) {
+                response.json(new JsonResponse(200, "Success", SocketServer.getOnlineClient()));
+                return;
+            } else if (req.action.equals("runmode")) {
+                response.json(new JsonResponse(200, "Success", 1));
                 return;
             }
         } else if (codes.containsKey(req.token)) {
@@ -143,7 +167,8 @@ public final class OpenCommandOnlyHttpHandler implements Router {
             if (req.action.equals("command")) {
                 SocketDataWait<HttpPacket> socketDataWait = new SocketDataWait<>(1000L * 10L) {
                     @Override
-                    public void run() {}
+                    public void run() {
+                    }
 
                     @Override
                     public HttpPacket initData(HttpPacket data) {
@@ -152,7 +177,6 @@ public final class OpenCommandOnlyHttpHandler implements Router {
 
                     @Override
                     public void timeout() {
-                        response.json(new JsonResponse(408, "Wait server timeout"));
                     }
                 };
 
@@ -173,7 +197,7 @@ public final class OpenCommandOnlyHttpHandler implements Router {
 
                 HttpPacket httpPacket = socketDataWait.getData();
                 if (httpPacket == null) {
-                    response.json(new JsonResponse(500, "error", "Server connect failed."));
+                    response.json(new JsonResponse(500, "error", "Wait timeout"));
                     return;
                 }
                 response.json(new JsonResponse(httpPacket.code, httpPacket.message));

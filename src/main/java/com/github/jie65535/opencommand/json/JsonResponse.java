@@ -19,7 +19,7 @@ package com.github.jie65535.opencommand.json;
 
 public final class JsonResponse {
     public int retcode = 200;
-    public String message = "success";
+    public String message = "Success";
     public Object data;
 
     public JsonResponse() {

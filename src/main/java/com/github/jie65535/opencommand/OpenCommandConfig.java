@@ -25,4 +25,5 @@ public class OpenCommandConfig {
     public int socketPort = 5746;
     public String socketToken = "";
     public String socketHost = "127.0.0.1";
+    public String socketDisplayName = "";
 }
