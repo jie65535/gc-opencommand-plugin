@@ -46,5 +46,5 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@v3
         with:
-          name: mojoconsole
+          name: open-command
           path: opencommand*.jar
