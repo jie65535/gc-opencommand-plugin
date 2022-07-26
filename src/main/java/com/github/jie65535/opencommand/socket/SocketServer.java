@@ -52,9 +52,9 @@ public class SocketServer {
     // 向全部客户端发送数据
     public static boolean sendAllPacket(BasePacket packet) {
         var p = SocketUtils.getPacket(packet);
-        HashMap<String, ClientThread> old = (HashMap<String, ClientThread>) clientList.clone();
+        HashMap<String, ClientInfo> old = (HashMap<String, ClientInfo>) clientList.clone();
         for (var client : old.entrySet()) {
-            if (!client.getValue().sendPacket(p)) {
+            if (!client.getValue().clientThread.sendPacket(p)) {
                 mLogger.warn("[OpenCommand] Send packet to client {} failed", client.getKey());
                 clientList.remove(client.getKey());
             }
@@ -90,8 +90,24 @@ public class SocketServer {
         return false;
     }
 
+    public static boolean sendUidPacket(Integer playerId, BasePacket player) {
+        var p = SocketUtils.getPacket(player);
+        var clientID = SocketData.getPlayerInServer(playerId);
+        if (clientID == null) return false;
+        var client = clientList.get(clientID);
+        if (client != null) {
+            if (!client.clientThread.sendPacket(p)) {
+                mLogger.warn("[OpenCommand] Send packet to client {} failed", clientID);
+                clientList.remove(clientID);
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
     // 根据Uid发送到相应的客户端异步返回数据
-    public static boolean sendUidPacket(Integer playerId, BasePacket player, SocketDataWait<?> socketDataWait) {
+    public static boolean sendUidPacketAndWait(Integer playerId, BasePacket player, SocketDataWait<?> socketDataWait) {
         var p = SocketUtils.getPacketAndPackID(player);
         var clientID = SocketData.getPlayerInServer(playerId);
         if (clientID == null) return false;

@@ -26,6 +26,6 @@ public class Player extends BasePacket {
         p.type = PlayerEnum.DropMessage;
         p.uid = uid;
         p.data = str;
-        SocketServer.sendAllPacket(p);
+        SocketServer.sendUidPacket(uid, p);
     }
 }

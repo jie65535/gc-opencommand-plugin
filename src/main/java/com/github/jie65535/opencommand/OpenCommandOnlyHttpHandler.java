@@ -26,10 +26,8 @@ import com.github.jie65535.opencommand.socket.packet.HttpPacket;
 import com.github.jie65535.opencommand.socket.packet.RunConsoleCommand;
 import com.github.jie65535.opencommand.socket.packet.player.Player;
 import com.github.jie65535.opencommand.socket.packet.player.PlayerEnum;
-import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
-import emu.grasscutter.utils.MessageHandler;
 import emu.grasscutter.utils.Utils;
 import express.Express;
 import express.http.Request;
@@ -41,7 +39,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.FutureTask;
 
 public final class OpenCommandOnlyHttpHandler implements Router {
 
@@ -189,7 +186,7 @@ public final class OpenCommandOnlyHttpHandler implements Router {
                 player.type = PlayerEnum.RunCommand;
                 player.data = command;
 
-                if (!SocketServer.sendUidPacket(playerId, player, socketDataWait)) {
+                if (!SocketServer.sendUidPacketAndWait(playerId, player, socketDataWait)) {
                     response.json(new JsonResponse(404, "Player Not Found."));
                     return;
                 }
