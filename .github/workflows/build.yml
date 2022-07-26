@@ -14,7 +14,7 @@ on:
       - synchronize
       - reopened
 jobs:
-  Build-Server-Jar:
+  Build-Jar:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,6 +37,9 @@ jobs:
       - name: Download latest grasscutter jar
         run: wget https://nightly.link/Grasscutters/Grasscutter/workflows/build/development/Grasscutter.zip && mkdir lib && unzip Grasscutter.zip -d lib
         
+      - name: Change permission
+        run: chmod +x gradlew
+      
       - name: Run Gradle
         run: ./gradlew jar
         
