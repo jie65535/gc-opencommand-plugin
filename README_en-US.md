@@ -22,8 +22,7 @@ A plugin that opens the GC command execution interface for third-party clients
 ### Master server (Dispatch)
 1. Open `config.json` in the `opencommand-plugin` directory
 2. Modify the `socketPort` value to an unused port
-3. Set the value of `socketToken` to your connection key. It is recommended to use a long random string of at least 32
-   characters.
+3. Set `sockettoken` multi server communication key. It is recommended to use a long random string of at least 32 characters.
 4. Restart the server to make the configuration effective
 
 ### Sub server (Game)
