@@ -20,6 +20,12 @@ package com.github.jie65535.opencommand;
 import com.github.jie65535.opencommand.json.JsonRequest;
 import com.github.jie65535.opencommand.json.JsonResponse;
 import com.github.jie65535.opencommand.socket.SocketData;
+import com.github.jie65535.opencommand.socket.SocketDataWait;
+import com.github.jie65535.opencommand.socket.SocketServer;
+import com.github.jie65535.opencommand.socket.packet.HttpPacket;
+import com.github.jie65535.opencommand.socket.packet.RunConsoleCommand;
+import com.github.jie65535.opencommand.socket.packet.player.Player;
+import com.github.jie65535.opencommand.socket.packet.player.PlayerEnum;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
@@ -32,16 +38,16 @@ import io.javalin.Javalin;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.FutureTask;
 
-public final class OpenCommandHandler implements Router {
+public final class OpenCommandOnlyHttpHandler implements Router {
 
     @Override
     public void applyRoutes(Express express, Javalin javalin) {
-        express.post("/opencommand/api", OpenCommandHandler::handle);
+        express.post("/opencommand/api", OpenCommandOnlyHttpHandler::handle);
     }
 
     private static final Map<String, Integer> clients = new HashMap<>();
@@ -60,7 +66,7 @@ public final class OpenCommandHandler implements Router {
         response.type("application/json");
         if (req.action.equals("sendCode")) {
             int playerId = (int) req.data;
-            var player = plugin.getServer().getPlayerByUid(playerId);
+            var player = SocketData.getPlayer(playerId);
             if (player == null) {
                 response.json(new JsonResponse(404, "Player Not Found."));
             } else {
@@ -80,7 +86,7 @@ public final class OpenCommandHandler implements Router {
                 tokenExpireTime.put(token, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L));
                 codes.put(token, code);
                 clients.put(token, playerId);
-                player.dropMessage("[Open Command] Verification code: " + code);
+                Player.dropMessage(playerId, "[Open Command] Verification code: " + code);
                 response.json(new JsonResponse(token));
             }
             return;
@@ -88,9 +94,7 @@ public final class OpenCommandHandler implements Router {
             response.json(new JsonResponse());
             return;
         } else if (req.action.equals("online")) {
-            var p = new ArrayList<String>();
-            plugin.getServer().getPlayers().forEach((uid, player) -> p.add(player.getNickname()));
-            response.json(new JsonResponse(200, "Success", new SocketData.OnlinePlayer(p)));
+            response.json(new JsonResponse(200, "Success", SocketData.getOnlinePlayer()));
             return;
         }
 
@@ -110,23 +114,40 @@ public final class OpenCommandHandler implements Router {
                 response.json(new JsonResponse());
                 return;
             } else if (req.action.equals("command")) {
-                //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                synchronized (plugin) {
-                    try {
-                        plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
-                        var resultCollector = new MessageHandler();
-                        EventListeners.setConsoleMessageHandler(resultCollector);
-                        CommandMap.getInstance().invoke(null, null, req.data.toString());
-                        response.json(new JsonResponse(resultCollector.getMessage()));
-                    } catch (Exception e) {
-                        plugin.getLogger().warn("Run command failed.", e);
-                        EventListeners.setConsoleMessageHandler(null);
-                        response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
-                    }
+                var server = SocketServer.getClientInfoByUuid(req.server);
+                if (server == null) {
+                    response.json(new JsonResponse(404, "Server Not Found."));
+                    return;
                 }
+                plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
+                var wait = new SocketDataWait<HttpPacket>(2000L) {
+                    @Override
+                    public void run() {
+                    }
+
+                    @Override
+                    public HttpPacket initData(HttpPacket data) {
+                        return data;
+                    }
+
+                    @Override
+                    public void timeout() {
+                    }
+                };
+
+                SocketServer.sendPacketAndWait(server.ip, new RunConsoleCommand(req.data.toString()), wait);
+                var data = wait.getData();
+                if (data == null) {
+                    response.json(new JsonResponse(408, "Timeout"));
+                    return;
+                }
+                response.json(new JsonResponse(data.code, data.message, data.data));
+                return;
+            } else if (req.action.equals("server")) {
+                response.json(new JsonResponse(200, "Success", SocketServer.getOnlineClient()));
                 return;
             } else if (req.action.equals("runmode")) {
-                response.json(new JsonResponse(200, "Success", 0));
+                response.json(new JsonResponse(200, "Success", 1));
                 return;
             }
         } else if (codes.containsKey(req.token)) {
@@ -144,30 +165,42 @@ public final class OpenCommandHandler implements Router {
             }
         } else {
             if (req.action.equals("command")) {
+                SocketDataWait<HttpPacket> socketDataWait = new SocketDataWait<>(1000L * 10L) {
+                    @Override
+                    public void run() {
+                    }
+
+                    @Override
+                    public HttpPacket initData(HttpPacket data) {
+                        return data;
+                    }
+
+                    @Override
+                    public void timeout() {
+                    }
+                };
+
                 // update token expire time
                 tokenExpireTime.put(req.token, new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L));
                 var playerId = clients.get(req.token);
-                var player = plugin.getServer().getPlayerByUid(playerId);
                 var command = req.data.toString();
-                if (player == null) {
-                    response.json(new JsonResponse(404, "Player not found"));
+                var player = new Player();
+                player.uid = playerId;
+                player.type = PlayerEnum.RunCommand;
+                player.data = command;
+
+                if (!SocketServer.sendUidPacket(playerId, player, socketDataWait)) {
+                    response.json(new JsonResponse(404, "Player Not Found."));
                     return;
                 }
-                // Player MessageHandler do not support concurrency
-                //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                synchronized (player) {
-                    try {
-                        var resultCollector = new MessageHandler();
-                        player.setMessageHandler(resultCollector);
-                        CommandMap.getInstance().invoke(player, player, command);
-                        response.json(new JsonResponse(resultCollector.getMessage()));
-                    } catch (Exception e) {
-                        plugin.getLogger().warn("Run command failed.", e);
-                        response.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
-                    } finally {
-                        player.setMessageHandler(null);
-                    }
+
+
+                HttpPacket httpPacket = socketDataWait.getData();
+                if (httpPacket == null) {
+                    response.json(new JsonResponse(500, "error", "Wait timeout"));
+                    return;
                 }
+                response.json(new JsonResponse(httpPacket.code, httpPacket.message));
                 return;
             }
         }

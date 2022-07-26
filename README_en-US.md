@@ -41,7 +41,10 @@ A plugin that opens the GC command execution interface for third-party clients
   "consoleToken": "",
   "codeExpirationTime_S": 60,
   "tempTokenExpirationTime_S": 300,
-  "tokenLastUseExpirationTime_H": 48
+  "tokenLastUseExpirationTime_H": 48,
+  "socketPort": 5746,
+  "socketToken": "",
+  "socketHost": "127.0.0.1"
 }
 ```
 
@@ -57,6 +60,7 @@ https://127.0.0.1/opencommand/api
 public final class JsonRequest {
     public String token = "";
     public String action = "";
+    public Seting server = "";
     public Object data = null;
 }
 ```
@@ -65,32 +69,178 @@ public final class JsonRequest {
 ```java
 public final class JsonResponse {
     public int retcode = 200;
-    public String message = "success";
+    public String message = "Success";
     public Object data;
 }
 ```
 
-## Actions
-### `ping`
-data = null
+### Actions 
+#### `Test connect`
 
-### `sendCode`
-#### Request
-data = uid (int)
-#### Response
-data = token (string)
+##### Request
 
-### `verify`: Requires `token`
-#### Request
-data = code (int)
-#### Response
-##### Success:
-code = 200
-##### Verification failed:
-code = 400
+| Request | Request data | type     |
+|---------|--------------|----------|
+| action  | `ping`       | `String` |
 
-### `command`: Requires `token`
-#### Request
-data = command (string)
-#### Response
-data = message (string)
+##### Response
+
+| Response | Response data | type     |
+|----------|---------------|----------|
+| retcode  | `200`         | `String` |
+| message  | `Success`     | `String` |
+| data     | `null`        | `null`   |
+
+#### `Get online players`
+
+##### Request
+
+| Request | Request data | type     |
+|---------|--------------|----------|
+| action  | `online`     | `String` |
+
+##### Response
+
+| Response | Response data                   | type         |
+|----------|---------------------------------|--------------|
+| retcode  | `200`                           | `String`     |
+| message  | `Success`                       | `String`     |
+| data     | `{"count": 0, playerList": []}` | `JsonObject` |
+
+#### `Send code`
+
+##### Request
+
+| Request | Request data | type     |
+|---------|--------------|----------|
+| action  | `sendCode`   | `String` |
+| data    | `uid`        | `Int`    |
+
+##### Response
+
+| Response | Response data | type     |
+|----------|---------------|----------|
+| retcode  | `200`         | `String` |
+| message  | `Success`     | `String` |
+| data     | `token`       | `String` |
+
+#### `Verify code`
+
+##### Request
+
+| Request | Request data | type     |
+|---------|--------------|----------|
+| action  | `verify`     | `String` |
+| token   | `token`      | `String` |
+| data    | `code`       | `Int`    |
+
+##### Response
+
+Success
+
+| Response | Response data | type     |
+|----------|---------------|----------|
+| retcode  | `200`         | `String` |
+| message  | `Success`     | `String` |
+| data     | `null`        | `null`   |
+
+Failed
+
+| Response | Response data         | type     |
+|----------|-----------------------|----------|
+| retcode  | `400`                 | `String` |
+| message  | `Verification failed` | `String` |
+| data     | `null`                | `null`   |
+
+#### `Run command`
+
+##### Request
+
+| Request | Request data | type     |
+|---------|--------------|----------|
+| action  | `command`    | `String` |
+| token   | `token`      | `String` |
+| data    | `command`    | `String` |
+
+##### Response
+
+Success
+
+| Response | Response data    | type     |
+|----------|------------------|----------|
+| retcode  | `200`            | `String` |
+| message  | `Success`        | `String` |
+| data     | `Command return` | `String` |
+
+### Run console command
+
+#### `Get run mode`
+
+##### Request
+
+| Request | Request data | Type     |
+|---------|--------------|----------|
+| action  | `runmode`    | `String` |
+| token   | `token`      | `String` |
+
+##### Response
+
+Success
+
+| Request | Response data                          | Type     |
+|---------|----------------------------------------|----------|
+| retcode | `200`                                  | `Int`    |
+| message | `Success`                              | `String` |
+| data    | `1 (Multi server) / 0 (Single server)` | `Int`    |
+
+#### `Get mulit server list`
+
+##### Request
+
+| Request | Request data | Type     |
+|---------|--------------|----------|
+| action  | `server`     | `String` |
+| token   | `token`      | `String` |
+
+##### Response
+
+Success
+
+| Request | Response data | Type         |
+|---------|---------------|--------------|
+| retcode | `200`         | `Int`        |
+| message | `Success`     | `String`     |
+| data    | `{}`          | `JsonObject` |
+
+```json
+{
+    "retcode": 200,
+    "message": "success",
+    "data": {
+        // Server UUID
+        "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 Server",
+        "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 Dev server"
+    }
+}
+```
+
+#### `Run command`
+
+##### Request
+
+| Request | Request data | Type     |
+|---------|--------------|----------|
+| action  | `command`    | `String` |
+| token   | `token`      | `String` |
+| server  | `UUID`       | `String` |
+| data    | `command`    | `String` |
+
+##### Response
+
+Success
+
+| Request | Response data    | Type     |
+|---------|------------------|----------|
+| retcode | `200`            | `Int`    |
+| message | `Success`        | `String` |
+| data    | `Command return` | `String` |
