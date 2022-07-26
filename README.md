@@ -25,6 +25,20 @@
 3. 重新启动服务端即可生效配置
 4. 在客户端中选择控制台身份，并填写你的 `consoleToken` 即可以控制台身份运行指令
 
+## 多服务器
+### 主服务器 (Dispatch)
+1. 在 `opencommand-plugin` 目录下打开 `config.json`
+2. 修改 `socketPort` 值为一个未被使用的端口
+3. 设置 `socketToken` 多服务器通信密钥，建议使用至少32字符的长随机字符串。
+4. 重新启动服务端即可生效配置
+
+### 子服务器 (Game)
+1. 在 `opencommand-plugin` 目录下打开 `config.json`
+2. 修改 `socketHost` 和 `socketPort` 值为主服务器的地址和端口
+3. 设置 `socketToken` 和主服务器相同的值
+4. 设置 `socketDisplayName` 值为你的服务器名称 (用途请见[下方](https://github.com/jie65535/gc-opencommand-plugin#%E8%8E%B7%E5%8F%96%E5%A4%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%88%97%E8%A1%A8))
+5. 重新启动服务端即可生效配置
+
 ## 构建说明
 
 1. 克隆仓库
@@ -117,7 +131,6 @@ public final class JsonResponse {
 | retcode | `200`     | `Int`    |
 | message | `Success` | `String` |
 | data    | `null`    | `null`   |
-
 
 #### `获取在线玩家`
 
@@ -242,19 +255,21 @@ public final class JsonResponse {
 
 ```json
 {
-    "retcode": 200,
-    "message": "success",
-    "data": {
-        // 服务器 UUID
-        "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 服务器",
-        "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 开发服务器"
-    }
+  "retcode": 200,
+  "message": "success",
+  "data": {
+    // 服务器 UUID
+    "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 服务器",
+    "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 开发服务器"
+  }
 }
 ```
 
 #### `执行命令`
 
 ##### Request
+
+> 如果为单服务器则无需填写服务器 UUID
 
 | 请求参数   | 请求数据      | 类型       |
 |--------|-----------|----------|

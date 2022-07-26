@@ -5,16 +5,36 @@
 A plugin that opens the GC command execution interface for third-party clients
 
 ## Server installation
+
 1. Download the `jar` in [Release](https://github.com/jie65535/gc-opencommand-plugin/releases)
 2. Put it in the `plugins` folder
 
 ## Console connection
-1. When starting for the first time, a `opencommand-plugin` directory will be generated under the `plugins` directory, open and edit `config.json`
-2. Set the value of `consoleToken` to your connection key. It is recommended to use a long random string of at least 32 characters.
+
+1. When starting for the first time, a `opencommand-plugin` directory will be generated under the `plugins` directory,
+   open and edit `config.json`
+2. Set the value of `consoleToken` to your connection key. It is recommended to use a long random string of at least 32
+   characters.
 3. Restart the server to take effect
 4. Select the console identity in the client, and fill in your `consoleToken` to run the command as the console identity
 
+## Multi server
+### Master server (Dispatch)
+1. Open `config.json` in the `opencommand-plugin` directory
+2. Modify the `socketPort` value to an unused port
+3. Set the value of `socketToken` to your connection key. It is recommended to use a long random string of at least 32
+   characters.
+4. Restart the server to make the configuration effective
+
+### Sub server (Game)
+1. Open `config.json` in the `opencommand-plugin` directory
+2. Modify the `sockethost` and `socketport` values to the address and port of the primary server
+3. Set the same value of `sockettoken` and the primary server
+4. Set the `socketDisplayName` value to your server name (See below for usage [Jump](https://github.com/jie65535/gc-opencommand-plugin/blob/master/README_en-US.md#get-mulit-server-list))
+5. Restart the server to make the configuration effective
+
 ## Build
+
 1. `git clone https://github.com/jie65535/gc-opencommand-plugin`
 2. `cd gc-opencommand-plugin`
 3. `mkdir lib`
@@ -22,20 +42,24 @@ A plugin that opens the GC command execution interface for third-party clients
 5. `gradle build`
 
 ## Player
+
 1. Fill in the service address in the client to confirm whether it supports
 2. Fill in the UID and send the verification code
 3. Fill in the **4-digit integer verification code** received in the game into the client verification
 4. Enjoy the convenience!
 
 ## Client request
+
 1. `ping` to confirm whether the `opencommand` plugin is supported
-2. `sendCode` sends a verification code to the specified player (re-send is not allowed within 1 minute), and save the returned `token`
+2. `sendCode` sends a verification code to the specified player (re-send is not allowed within 1 minute), and save the
+   returned `token`
 3. Send `verify` check using `token` and **4-digit integer verification code**
 4. If the verification is passed, you can use the `token` to execute the `command` action
 
 ---
 
 ## `config.json`
+
 ```json
 {
   "consoleToken": "",
@@ -48,14 +72,16 @@ A plugin that opens the GC command execution interface for third-party clients
 }
 ```
 
-
 ## API `/opencommand/api`
+
 Example
+
 ```
 https://127.0.0.1/opencommand/api
 ```
 
 ## Request
+
 ```java
 public final class JsonRequest {
     public String token = "";
@@ -66,6 +92,7 @@ public final class JsonRequest {
 ```
 
 ## Response
+
 ```java
 public final class JsonResponse {
     public int retcode = 200;
@@ -74,7 +101,8 @@ public final class JsonResponse {
 }
 ```
 
-### Actions 
+### Actions
+
 #### `Test connect`
 
 ##### Request
@@ -214,19 +242,21 @@ Success
 
 ```json
 {
-    "retcode": 200,
-    "message": "success",
-    "data": {
-        // Server UUID
-        "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 Server",
-        "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 Dev server"
-    }
+  "retcode": 200,
+  "message": "success",
+  "data": {
+    // Server UUID
+    "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 Server",
+    "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 Dev server"
+  }
 }
 ```
 
 #### `Run command`
 
 ##### Request
+
+> If it is a single server, there is no need to fill in server UUID.
 
 | Request | Request data | Type     |
 |---------|--------------|----------|
