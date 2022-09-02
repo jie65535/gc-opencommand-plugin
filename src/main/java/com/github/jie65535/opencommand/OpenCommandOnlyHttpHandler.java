@@ -29,10 +29,8 @@ import com.github.jie65535.opencommand.socket.packet.player.PlayerEnum;
 import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
 import emu.grasscutter.utils.Utils;
-import express.Express;
-import express.http.Request;
-import express.http.Response;
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
@@ -43,8 +41,8 @@ import java.util.Map;
 public final class OpenCommandOnlyHttpHandler implements Router {
 
     @Override
-    public void applyRoutes(Express express, Javalin javalin) {
-        express.post("/opencommand/api", OpenCommandOnlyHttpHandler::handle);
+    public void applyRoutes(Javalin javalin) {
+        javalin.post("/opencommand/api", OpenCommandOnlyHttpHandler::handle);
     }
 
     private static final Map<String, Integer> clients = new HashMap<>();
@@ -52,25 +50,24 @@ public final class OpenCommandOnlyHttpHandler implements Router {
     private static final Map<String, Integer> codes = new HashMap<>();
     private static final Int2ObjectMap<Date> codeExpireTime = new Int2ObjectOpenHashMap<>();
 
-    public static void handle(Request request, Response response) {
+    public static void handle(Context context) {
         // Trigger cleanup action
         cleanupExpiredData();
         var plugin = OpenCommandPlugin.getInstance();
         var config = plugin.getConfig();
         var now = new Date();
 
-        var req = request.body(JsonRequest.class);
-        response.type("application/json");
+        var req = context.bodyAsClass(JsonRequest.class);
         if (req.action.equals("sendCode")) {
             int playerId = (int) req.data;
             var player = SocketData.getPlayer(playerId);
             if (player == null) {
-                response.json(new JsonResponse(404, "Player Not Found."));
+                context.json(new JsonResponse(404, "Player Not Found."));
             } else {
                 if (codeExpireTime.containsKey(playerId)) {
                     var expireTime = codeExpireTime.get(playerId);
                     if (now.before(expireTime)) {
-                        response.json(new JsonResponse(403, "Requests are too frequent"));
+                        context.json(new JsonResponse(403, "Requests are too frequent"));
                         return;
                     }
                 }
@@ -84,39 +81,39 @@ public final class OpenCommandOnlyHttpHandler implements Router {
                 codes.put(token, code);
                 clients.put(token, playerId);
                 Player.dropMessage(playerId, "[Open Command] Verification code: " + code);
-                response.json(new JsonResponse(token));
+                context.json(new JsonResponse(token));
             }
             return;
         } else if (req.action.equals("ping")) {
-            response.json(new JsonResponse());
+            context.json(new JsonResponse());
             return;
         } else if (req.action.equals("online")) {
-            response.json(new JsonResponse(200, "Success", SocketData.getOnlinePlayer()));
+            context.json(new JsonResponse(200, "Success", SocketData.getOnlinePlayer()));
             return;
         }
 
         // token is required
         if (req.token == null || req.token.isEmpty()) {
-            response.json(new JsonResponse(401, "Unauthorized"));
+            context.json(new JsonResponse(401, "Unauthorized"));
             return;
         }
         var isConsole = req.token.equals(config.consoleToken);
         if (!isConsole && !clients.containsKey(req.token)) {
-            response.json(new JsonResponse(401, "Unauthorized"));
+            context.json(new JsonResponse(401, "Unauthorized"));
             return;
         }
 
         if (isConsole) {
             if (req.action.equals("verify")) {
-                response.json(new JsonResponse());
+                context.json(new JsonResponse());
                 return;
             } else if (req.action.equals("command")) {
                 var server = SocketServer.getClientInfoByUuid(req.server);
                 if (server == null) {
-                    response.json(new JsonResponse(404, "Server Not Found."));
+                    context.json(new JsonResponse(404, "Server Not Found."));
                     return;
                 }
-                plugin.getLogger().info(String.format("IP: %s run command in console > %s", request.ip(), req.data));
+                plugin.getLogger().info(String.format("IP: %s run command in console > %s", context.ip(), req.data));
                 var wait = new SocketDataWait<HttpPacket>(2000L) {
                     @Override
                     public void run() {
@@ -135,16 +132,16 @@ public final class OpenCommandOnlyHttpHandler implements Router {
                 SocketServer.sendPacketAndWait(server.ip, new RunConsoleCommand(req.data.toString()), wait);
                 var data = wait.getData();
                 if (data == null) {
-                    response.json(new JsonResponse(408, "Timeout"));
+                    context.json(new JsonResponse(408, "Timeout"));
                     return;
                 }
-                response.json(new JsonResponse(data.code, data.message, data.data));
+                context.json(new JsonResponse(data.code, data.message, data.data));
                 return;
             } else if (req.action.equals("server")) {
-                response.json(new JsonResponse(200, "Success", SocketServer.getOnlineClient()));
+                context.json(new JsonResponse(200, "Success", SocketServer.getOnlineClient()));
                 return;
             } else if (req.action.equals("runmode")) {
-                response.json(new JsonResponse(200, "Success", 1));
+                context.json(new JsonResponse(200, "Success", 1));
                 return;
             }
         } else if (codes.containsKey(req.token)) {
@@ -153,10 +150,10 @@ public final class OpenCommandOnlyHttpHandler implements Router {
                     codes.remove(req.token);
                     // update token expire time
                     tokenExpireTime.put(req.token, new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L));
-                    response.json(new JsonResponse());
-                    plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", clients.get(req.token), request.ip()));
+                    context.json(new JsonResponse());
+                    plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", clients.get(req.token), context.ip()));
                 } else {
-                    response.json(new JsonResponse(400, "Verification failed"));
+                    context.json(new JsonResponse(400, "Verification failed"));
                 }
                 return;
             }
@@ -187,21 +184,21 @@ public final class OpenCommandOnlyHttpHandler implements Router {
                 player.data = command;
 
                 if (!SocketServer.sendUidPacketAndWait(playerId, player, socketDataWait)) {
-                    response.json(new JsonResponse(404, "Player Not Found."));
+                    context.json(new JsonResponse(404, "Player Not Found."));
                     return;
                 }
 
 
                 HttpPacket httpPacket = socketDataWait.getData();
                 if (httpPacket == null) {
-                    response.json(new JsonResponse(500, "error", "Wait timeout"));
+                    context.json(new JsonResponse(500, "error", "Wait timeout"));
                     return;
                 }
-                response.json(new JsonResponse(httpPacket.code, httpPacket.message));
+                context.json(new JsonResponse(httpPacket.code, httpPacket.message));
                 return;
             }
         }
-        response.json(new JsonResponse(403, "forbidden"));
+        context.json(new JsonResponse(403, "forbidden"));
     }
 
     private static void cleanupExpiredData() {

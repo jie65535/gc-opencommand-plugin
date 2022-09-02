@@ -18,12 +18,43 @@
 package com.github.jie65535.opencommand;
 
 public class OpenCommandConfig {
+    /**
+     * 控制台 Token
+     */
     public String consoleToken = "";
+
+    /**
+     * 验证码过期时间（单位秒）
+     */
     public int codeExpirationTime_S = 60;
+
+    /**
+     * 临时Token过期时间（单位秒）
+     */
     public int tempTokenExpirationTime_S = 300;
+
+    /**
+     * Token 最后使用过期时间（单位小时）
+     */
     public int tokenLastUseExpirationTime_H = 48;
+
+    /**
+     * Socket 端口
+     */
     public int socketPort = 5746;
+
+    /**
+     * Socket Token
+     */
     public String socketToken = "";
+
+    /**
+     * Socket 主机地址
+     */
     public String socketHost = "127.0.0.1";
+
+    /**
+     * Socket 显示名称
+     */
     public String socketDisplayName = "";
 }

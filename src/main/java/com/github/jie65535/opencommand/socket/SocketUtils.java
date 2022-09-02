@@ -1,9 +1,25 @@
+/*
+ * gc-opencommand
+ * Copyright (C) 2022  jie65535
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.github.jie65535.opencommand.socket;
 
-import com.github.jie65535.opencommand.OpenCommandPlugin;
 import com.github.jie65535.opencommand.socket.packet.BasePacket;
 import com.github.jie65535.opencommand.socket.packet.Packet;
-import emu.grasscutter.Grasscutter;
+import emu.grasscutter.utils.JsonUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +42,7 @@ public class SocketUtils {
         packet.type = bPacket.getType();
         packet.data = bPacket.getPacket();
         packet.packetID = UUID.randomUUID().toString();
-        return Grasscutter.getGsonFactory().toJson(packet);
+        return JsonUtils.encode(packet);
     }
 
     /**
@@ -43,7 +59,7 @@ public class SocketUtils {
 
         List<String> list = new ArrayList<>();
         list.add(packet.packetID);
-        list.add(Grasscutter.getGsonFactory().toJson(packet));
+        list.add(JsonUtils.encode(packet));
         return list;
     }
 
@@ -59,7 +75,7 @@ public class SocketUtils {
         packet.type = bPacket.getType();
         packet.data = bPacket.getPacket();
         packet.packetID = packetID;
-        return Grasscutter.getGsonFactory().toJson(packet);
+        return JsonUtils.encode(packet);
     }
 
     /**
@@ -117,8 +133,7 @@ public class SocketUtils {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        String s = new String(sByte);
-        return s;
+        return new String(sByte);
     }
 
     /**

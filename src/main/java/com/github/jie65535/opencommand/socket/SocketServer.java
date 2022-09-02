@@ -1,9 +1,26 @@
+/*
+ * gc-opencommand
+ * Copyright (C) 2022  jie65535
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.github.jie65535.opencommand.socket;
 
 import com.github.jie65535.opencommand.OpenCommandPlugin;
 import com.github.jie65535.opencommand.socket.packet.*;
 import com.github.jie65535.opencommand.socket.packet.player.PlayerList;
-import emu.grasscutter.Grasscutter;
+import emu.grasscutter.utils.JsonUtils;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -190,13 +207,12 @@ public class SocketServer {
 
         @Override
         public void run() {
-            // noinspection InfiniteLoopStatement
             while (true) {
                 try {
                     String data = SocketUtils.readString(is);
-                    Packet packet = Grasscutter.getGsonFactory().fromJson(data, Packet.class);
+                    Packet packet = JsonUtils.decode(data, Packet.class);
                     if (packet.type == PacketEnum.AuthPacket) {
-                        AuthPacket authPacket = Grasscutter.getGsonFactory().fromJson(packet.data, AuthPacket.class);
+                        AuthPacket authPacket = JsonUtils.decode(packet.data, AuthPacket.class);
                         if (authPacket.token.equals(token)) {
                             auth = true;
                             displayName = authPacket.displayName;
@@ -217,12 +233,12 @@ public class SocketServer {
                     switch (packet.type) {
                         // 缓存玩家列表
                         case PlayerList -> {
-                            PlayerList playerList = Grasscutter.getGsonFactory().fromJson(packet.data, PlayerList.class);
+                            PlayerList playerList = JsonUtils.decode(packet.data, PlayerList.class);
                             SocketData.playerList.put(address, playerList);
                         }
                         // Http信息返回
                         case HttpPacket -> {
-                            HttpPacket httpPacket = Grasscutter.getGsonFactory().fromJson(packet.data, HttpPacket.class);
+                            HttpPacket httpPacket = JsonUtils.decode(packet.data, HttpPacket.class);
                             var socketWait = socketDataWaitList.get(packet.packetID);
                             if (socketWait == null) {
                                 mLogger.error("[OpenCommand] HttpPacket: " + packet.packetID + " not found");
@@ -232,9 +248,7 @@ public class SocketServer {
                             socketDataWaitList.remove(packet.packetID);
                         }
                         // 心跳包
-                        case HeartBeat -> {
-                            clientTimeout.put(address, 0);
-                        }
+                        case HeartBeat -> clientTimeout.put(address, 0);
                     }
                 } catch (Throwable e) {
                     e.printStackTrace();

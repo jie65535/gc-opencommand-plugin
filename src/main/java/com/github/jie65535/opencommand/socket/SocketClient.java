@@ -1,3 +1,20 @@
+/*
+ * gc-opencommand
+ * Copyright (C) 2022  jie65535
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.github.jie65535.opencommand.socket;
 
 import com.github.jie65535.opencommand.EventListeners;
@@ -8,6 +25,7 @@ import com.github.jie65535.opencommand.socket.packet.player.Player;
 import com.github.jie65535.opencommand.socket.packet.player.PlayerList;
 import emu.grasscutter.Grasscutter;
 import emu.grasscutter.command.CommandMap;
+import emu.grasscutter.utils.JsonUtils;
 import emu.grasscutter.utils.MessageHandler;
 import org.slf4j.Logger;
 
@@ -122,18 +140,17 @@ public class SocketClient {
 
         @Override
         public void run() {
-            //noinspection InfiniteLoopStatement
             while (true) {
                 try {
                     if (exit) {
                         return;
                     }
                     String data = SocketUtils.readString(is);
-                    Packet packet = Grasscutter.getGsonFactory().fromJson(data, Packet.class);
+                    Packet packet = JsonUtils.decode(data, Packet.class);
                     switch (packet.type) {
                         // 玩家类
                         case Player:
-                            var player = Grasscutter.getGsonFactory().fromJson(packet.data, Player.class);
+                            var player = JsonUtils.decode(packet.data, Player.class);
                             switch (player.type) {
                                 // 运行命令
                                 case RunCommand -> {
@@ -170,7 +187,7 @@ public class SocketClient {
                             }
                             break;
                         case RunConsoleCommand:
-                            var consoleCommand = Grasscutter.getGsonFactory().fromJson(packet.data, RunConsoleCommand.class);
+                            var consoleCommand = JsonUtils.decode(packet.data, RunConsoleCommand.class);
                             var plugin = OpenCommandPlugin.getInstance();
                             //noinspection SynchronizationOnLocalVariableOrMethodParameter
                             synchronized (plugin) {

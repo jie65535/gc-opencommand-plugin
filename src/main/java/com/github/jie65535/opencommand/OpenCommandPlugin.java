@@ -26,11 +26,9 @@ import emu.grasscutter.server.event.HandlerPriority;
 import emu.grasscutter.server.event.game.ReceiveCommandFeedbackEvent;
 import emu.grasscutter.server.event.player.PlayerJoinEvent;
 import emu.grasscutter.server.event.player.PlayerQuitEvent;
+import emu.grasscutter.utils.JsonUtils;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 
 public final class OpenCommandPlugin extends Plugin {
 
@@ -42,10 +40,15 @@ public final class OpenCommandPlugin extends Plugin {
 
     private OpenCommandConfig config;
 
+    private Grasscutter.ServerRunMode runMode = Grasscutter.ServerRunMode.HYBRID;
+
     @Override
     public void onLoad() {
         instance = this;
+        // 加载配置
         loadConfig();
+        // 启动Socket
+        startSocket();
     }
 
     @Override
@@ -54,7 +57,7 @@ public final class OpenCommandPlugin extends Plugin {
                 .priority(HandlerPriority.HIGH)
                 .listener(EventListeners::onCommandResponse)
                 .register(this);
-        if (Grasscutter.getConfig().server.runMode == Grasscutter.ServerRunMode.GAME_ONLY) {
+        if (runMode == Grasscutter.ServerRunMode.GAME_ONLY) {
             // 仅运行游戏服务器时注册玩家加入和离开事件
             new EventHandler<>(PlayerJoinEvent.class)
                     .priority(HandlerPriority.HIGH)
@@ -64,7 +67,7 @@ public final class OpenCommandPlugin extends Plugin {
                     .priority(HandlerPriority.HIGH)
                     .listener(EventListeners::onPlayerQuit)
                     .register(this);
-        } else if (Grasscutter.getConfig().server.runMode == Grasscutter.ServerRunMode.DISPATCH_ONLY) {
+        } else if (runMode == Grasscutter.ServerRunMode.DISPATCH_ONLY) {
             getHandle().addRouter(OpenCommandOnlyHttpHandler.class);
         } else {
             getHandle().addRouter(OpenCommandHandler.class);
@@ -86,29 +89,32 @@ public final class OpenCommandPlugin extends Plugin {
         if (!configFile.exists()) {
             config = new OpenCommandConfig();
             try (var file = new FileWriter(configFile)) {
-                file.write(Grasscutter.getGsonFactory().toJson(config));
+                file.write(JsonUtils.encode(config));
             } catch (IOException e) {
                 getLogger().error("[OpenCommand] Unable to write to config file.");
             } catch (Exception e) {
                 getLogger().error("[OpenCommand] Unable to save config file.");
             }
         } else {
-            try (var file = new FileReader(configFile)) {
-                config = Grasscutter.getGsonFactory().fromJson(file, OpenCommandConfig.class);
+            try {
+                config = JsonUtils.loadToClass(configFile.getAbsolutePath(), OpenCommandConfig.class);
             } catch (Exception exception) {
                 config = new OpenCommandConfig();
                 getLogger().error("[OpenCommand] There was an error while trying to load the configuration from config.json. Please make sure that there are no syntax errors. If you want to start with a default configuration, delete your existing config.json.");
             }
         }
-        // 启动Socket
-        startSocket();
+        try {
+            runMode = Grasscutter.getConfig().server.runMode;
+        } catch (Exception ex) {
+            getLogger().warn("[OpenCommand] Failed to load server configuration, default HYBRID mode is being used.");
+        }
     }
 
     private void startSocket() {
-        if (Grasscutter.getConfig().server.runMode == Grasscutter.ServerRunMode.GAME_ONLY) {
+        if (runMode == Grasscutter.ServerRunMode.GAME_ONLY) {
             getLogger().info("[OpenCommand] Starting socket client...");
             SocketClient.connectServer();
-        } else if (Grasscutter.getConfig().server.runMode == Grasscutter.ServerRunMode.DISPATCH_ONLY) {
+        } else if (runMode == Grasscutter.ServerRunMode.DISPATCH_ONLY) {
             getLogger().info("[OpenCommand] Starting socket server...");
             try {
                 SocketServer.startServer();
