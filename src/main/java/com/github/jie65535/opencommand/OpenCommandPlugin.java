@@ -40,6 +40,8 @@ public final class OpenCommandPlugin extends Plugin {
 
     private OpenCommandConfig config;
 
+    private OpenCommandData data;
+
     private Grasscutter.ServerRunMode runMode = Grasscutter.ServerRunMode.HYBRID;
 
     @Override
@@ -47,6 +49,8 @@ public final class OpenCommandPlugin extends Plugin {
         instance = this;
         // 加载配置
         loadConfig();
+        // 加载数据
+        loadData();
         // 启动Socket
         startSocket();
     }
@@ -77,11 +81,16 @@ public final class OpenCommandPlugin extends Plugin {
 
     @Override
     public void onDisable() {
+        saveData();
         getLogger().info("[OpenCommand] Disabled");
     }
 
     public OpenCommandConfig getConfig() {
         return config;
+    }
+
+    public OpenCommandData getData() {
+        return data;
     }
 
     private void loadConfig() {
@@ -107,6 +116,31 @@ public final class OpenCommandPlugin extends Plugin {
             runMode = Grasscutter.getConfig().server.runMode;
         } catch (Exception ex) {
             getLogger().warn("[OpenCommand] Failed to load server configuration, default HYBRID mode is being used.");
+        }
+    }
+
+    private void loadData() {
+        var dataFile = new File(getDataFolder(), "data.json");
+        if (!dataFile.exists()) {
+            data = new OpenCommandData();
+            saveData();
+        } else {
+            try {
+                data = JsonUtils.loadToClass(dataFile.getAbsolutePath(), OpenCommandData.class);
+            } catch (Exception exception) {
+                data = new OpenCommandData();
+                getLogger().error("[OpenCommand] There was an error while trying to load the data from data.json. Please make sure that there are no syntax errors. If you want to start with a default data, delete your existing data.json.");
+            }
+        }
+    }
+
+    public void saveData() {
+        try (var file = new FileWriter(new File(getDataFolder(), "data.json"))) {
+            file.write(JsonUtils.encode(data));
+        } catch (IOException e) {
+            getLogger().error("[OpenCommand] Unable to write to data file.");
+        } catch (Exception e) {
+            getLogger().error("[OpenCommand] Unable to save data file.");
         }
     }
 

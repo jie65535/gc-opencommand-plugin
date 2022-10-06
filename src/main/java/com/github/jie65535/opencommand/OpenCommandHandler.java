@@ -19,6 +19,7 @@ package com.github.jie65535.opencommand;
 
 import com.github.jie65535.opencommand.json.JsonRequest;
 import com.github.jie65535.opencommand.json.JsonResponse;
+import com.github.jie65535.opencommand.model.Client;
 import com.github.jie65535.opencommand.socket.SocketData;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.server.http.Router;
@@ -42,17 +43,17 @@ public final class OpenCommandHandler implements Router {
         javalin.post("/opencommand/api", OpenCommandHandler::handle);
     }
 
-    private static final Map<String, Integer> clients = new HashMap<>();
-    private static final Map<String, Date> tokenExpireTime = new HashMap<>();
     private static final Map<String, Integer> codes = new HashMap<>();
     private static final Int2ObjectMap<Date> codeExpireTime = new Int2ObjectOpenHashMap<>();
 
     public static void handle(Context context) {
-        // Trigger cleanup action
-        cleanupExpiredData();
         var plugin = OpenCommandPlugin.getInstance();
         var config = plugin.getConfig();
+        var data = plugin.getData();
         var now = new Date();
+        // Trigger cleanup action
+        cleanupExpiredCodes();
+        data.removeExpiredClients();
 
         var req = context.bodyAsClass(JsonRequest.class);
         if (req.action.equals("sendCode")) {
@@ -74,9 +75,8 @@ public final class OpenCommandHandler implements Router {
                     token = Utils.bytesToHex(Crypto.createSessionKey(32));
                 int code = Utils.randomRange(1000, 9999);
                 codeExpireTime.put(playerId, new Date(now.getTime() + config.codeExpirationTime_S * 1000L));
-                tokenExpireTime.put(token, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L));
                 codes.put(token, code);
-                clients.put(token, playerId);
+                data.addClient(new Client(token, playerId, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L)));
                 player.dropMessage("[Open Command] Verification code: " + code);
                 context.json(new JsonResponse(token));
             }
@@ -97,7 +97,8 @@ public final class OpenCommandHandler implements Router {
             return;
         }
         var isConsole = req.token.equals(config.consoleToken);
-        if (!isConsole && !clients.containsKey(req.token)) {
+        var client = data.getClientByToken(req.token);
+        if (!isConsole && client == null) {
             context.json(new JsonResponse(401, "Unauthorized"));
             return;
         }
@@ -131,9 +132,10 @@ public final class OpenCommandHandler implements Router {
                 if (codes.get(req.token).equals(req.data)) {
                     codes.remove(req.token);
                     // update token expire time
-                    tokenExpireTime.put(req.token, new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L));
+                    client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
                     context.json(new JsonResponse());
-                    plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", clients.get(req.token), context.ip()));
+                    plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", client.playerId, context.ip()));
+                    plugin.saveData();
                 } else {
                     context.json(new JsonResponse(400, "Verification failed"));
                 }
@@ -142,9 +144,8 @@ public final class OpenCommandHandler implements Router {
         } else {
             if (req.action.equals("command")) {
                 // update token expire time
-                tokenExpireTime.put(req.token, new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L));
-                var playerId = clients.get(req.token);
-                var player = plugin.getServer().getPlayerByUid(playerId);
+                client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
+                var player = plugin.getServer().getPlayerByUid(client.playerId);
                 var command = req.data.toString();
                 if (player == null) {
                     context.json(new JsonResponse(404, "Player not found"));
@@ -171,18 +172,10 @@ public final class OpenCommandHandler implements Router {
         context.json(new JsonResponse(403, "forbidden"));
     }
 
-    private static void cleanupExpiredData() {
+    private static void cleanupExpiredCodes() {
         var now = new Date();
         codeExpireTime.int2ObjectEntrySet().removeIf(entry -> entry.getValue().before(now));
-
-        var it = tokenExpireTime.entrySet().iterator();
-        while (it.hasNext()) {
-            var entry = it.next();
-            if (entry.getValue().before(now)) {
-                it.remove();
-                // remove expired token
-                clients.remove(entry.getKey());
-            }
-        }
+        if (codeExpireTime.isEmpty())
+            codes.clear();
     }
 }
