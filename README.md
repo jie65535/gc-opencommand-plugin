@@ -4,6 +4,11 @@
 
 一个为第三方客户端开放GC命令执行接口的插件
 
+## 使用本插件的应用
+- [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows 客户端工具
+- [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) 插件，在QQ里执行命令
+- 待补充
+
 ## 服务端安装
 
 1. 在 [Release](https://github.com/jie65535/gc-opencommand-plugin/releases) 下载 `jar`
