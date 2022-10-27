@@ -4,6 +4,11 @@
 
 A plugin that opens the GC command execution interface for third-party clients
 
+## Applications using this plug-in
+- [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows Client Tools
+- [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) Plugin, run commands in QQ
+- TODO
+
 ## Server installation
 
 1. Download the `jar` in [Release](https://github.com/jie65535/gc-opencommand-plugin/releases)
