@@ -105,8 +105,8 @@ public final class OpenCommandPlugin extends Plugin {
                 getLogger().error("[OpenCommand] Unable to save config file.");
             }
         } else {
-            try {
-                config = JsonUtils.loadToClass(configFile.getAbsolutePath(), OpenCommandConfig.class);
+            try (var fileReader = new InputStreamReader(new FileInputStream(configFile))) {
+                config = JsonUtils.loadToClass(fileReader, OpenCommandConfig.class);
             } catch (Exception exception) {
                 config = new OpenCommandConfig();
                 getLogger().error("[OpenCommand] There was an error while trying to load the configuration from config.json. Please make sure that there are no syntax errors. If you want to start with a default configuration, delete your existing config.json.");
@@ -125,8 +125,8 @@ public final class OpenCommandPlugin extends Plugin {
             data = new OpenCommandData();
             saveData();
         } else {
-            try {
-                data = JsonUtils.loadToClass(dataFile.getAbsolutePath(), OpenCommandData.class);
+            try (var fileReader = new InputStreamReader(new FileInputStream(dataFile))) {
+                data = JsonUtils.loadToClass(fileReader, OpenCommandData.class);
             } catch (Exception exception) {
                 data = new OpenCommandData();
                 getLogger().error("[OpenCommand] There was an error while trying to load the data from data.json. Please make sure that there are no syntax errors. If you want to start with a default data, delete your existing data.json.");
