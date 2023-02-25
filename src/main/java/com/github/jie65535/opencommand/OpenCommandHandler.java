@@ -46,6 +46,8 @@ public final class OpenCommandHandler implements Router {
     private static final Map<String, Integer> codes = new HashMap<>();
     private static final Int2ObjectMap<Date> codeExpireTime = new Int2ObjectOpenHashMap<>();
 
+    private static final Int2ObjectMap<MessageHandler> playerMessageHandlers = new Int2ObjectOpenHashMap<>();
+
     public static void handle(Context context) {
         var plugin = OpenCommandPlugin.getInstance();
         var config = plugin.getConfig();
@@ -152,13 +154,18 @@ public final class OpenCommandHandler implements Router {
                     return;
                 }
                 // Player MessageHandler do not support concurrency
+                var handler = playerMessageHandlers.get(player.getUid());
+                if (handler == null) {
+                    handler = new MessageHandler();
+                    playerMessageHandlers.put(player.getUid(), handler);
+                }
                 //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                synchronized (player) {
+                synchronized (handler) {
                     try {
-                        var resultCollector = new MessageHandler();
-                        player.setMessageHandler(resultCollector);
+                        handler.setMessage("");
+                        player.setMessageHandler(handler);
                         CommandMap.getInstance().invoke(player, player, command);
-                        context.json(new JsonResponse(resultCollector.getMessage()));
+                        context.json(new JsonResponse(handler.getMessage()));
                     } catch (Exception e) {
                         plugin.getLogger().warn("Run command failed.", e);
                         context.json(new JsonResponse(500, "error", e.getLocalizedMessage()));

@@ -29,6 +29,8 @@ import emu.grasscutter.server.event.player.PlayerQuitEvent;
 import emu.grasscutter.utils.JsonUtils;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 public final class OpenCommandPlugin extends Plugin {
 
@@ -105,8 +107,9 @@ public final class OpenCommandPlugin extends Plugin {
                 getLogger().error("[OpenCommand] Unable to save config file.");
             }
         } else {
-            try (var fileReader = new InputStreamReader(new FileInputStream(configFile))) {
-                config = JsonUtils.loadToClass(fileReader, OpenCommandConfig.class);
+            try {
+                config = JsonUtils.decode(Files.readString(configFile.toPath(), StandardCharsets.UTF_8),
+                        OpenCommandConfig.class);
             } catch (Exception exception) {
                 config = new OpenCommandConfig();
                 getLogger().error("[OpenCommand] There was an error while trying to load the configuration from config.json. Please make sure that there are no syntax errors. If you want to start with a default configuration, delete your existing config.json.");
@@ -125,8 +128,9 @@ public final class OpenCommandPlugin extends Plugin {
             data = new OpenCommandData();
             saveData();
         } else {
-            try (var fileReader = new InputStreamReader(new FileInputStream(dataFile))) {
-                data = JsonUtils.loadToClass(fileReader, OpenCommandData.class);
+            try {
+                data = JsonUtils.decode(Files.readString(dataFile.toPath(), StandardCharsets.UTF_8),
+                        OpenCommandData.class);
             } catch (Exception exception) {
                 data = new OpenCommandData();
                 getLogger().error("[OpenCommand] There was an error while trying to load the data from data.json. Please make sure that there are no syntax errors. If you want to start with a default data, delete your existing data.json.");
