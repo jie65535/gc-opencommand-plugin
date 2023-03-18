@@ -7,6 +7,7 @@
 ## 使用本插件的应用
 - [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows 客户端工具
 - [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) 插件，在QQ里执行命令
+- [Yunzai-GrasscutterCommand](https://github.com/Zyy-boop/Yunzai-GrasscutterCommand) —— Yunzai-bot插件，在QQ里执行命令
 - 待补充
 
 ## 服务端安装
