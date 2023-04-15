@@ -24,21 +24,24 @@ import emu.grasscutter.game.player.Player;
 import emu.grasscutter.server.event.game.ReceiveCommandFeedbackEvent;
 import emu.grasscutter.server.event.player.PlayerJoinEvent;
 import emu.grasscutter.server.event.player.PlayerQuitEvent;
-import emu.grasscutter.utils.MessageHandler;
 
 import java.util.ArrayList;
 
 public final class EventListeners {
 
-    private static MessageHandler consoleMessageHandler;
+    private static StringBuilder consoleMessageHandler;
 
-    public static void setConsoleMessageHandler(MessageHandler handler) {
+    public static void setConsoleMessageHandler(StringBuilder handler) {
         consoleMessageHandler = handler;
     }
 
     public static void onCommandResponse(ReceiveCommandFeedbackEvent event) {
         if (consoleMessageHandler != null && event.getPlayer() == null) {
-            consoleMessageHandler.setMessage(event.getMessage());
+            if (!consoleMessageHandler.isEmpty()) {
+                // New line
+                consoleMessageHandler.append(System.lineSeparator());
+            }
+            consoleMessageHandler.append(event.getMessage());
         }
     }
 

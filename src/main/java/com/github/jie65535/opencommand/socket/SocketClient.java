@@ -192,10 +192,10 @@ public class SocketClient {
                             //noinspection SynchronizationOnLocalVariableOrMethodParameter
                             synchronized (plugin) {
                                 try {
-                                    var resultCollector = new MessageHandler();
+                                    var resultCollector = new StringBuilder();
                                     EventListeners.setConsoleMessageHandler(resultCollector);
                                     CommandMap.getInstance().invoke(null, null, consoleCommand.command);
-                                    sendPacket(new HttpPacket(resultCollector.getMessage()), packet.packetID);
+                                    sendPacket(new HttpPacket(resultCollector.toString()), packet.packetID);
                                 } catch (Exception e) {
                                     mLogger.warn("[OpenCommand] Run command failed.", e);
                                     EventListeners.setConsoleMessageHandler(null);

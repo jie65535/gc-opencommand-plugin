@@ -114,10 +114,10 @@ public final class OpenCommandHandler implements Router {
                 synchronized (plugin) {
                     try {
                         plugin.getLogger().info(String.format("IP: %s run command in console > %s", context.ip(), req.data));
-                        var resultCollector = new MessageHandler();
+                        var resultCollector = new StringBuilder();
                         EventListeners.setConsoleMessageHandler(resultCollector);
                         CommandMap.getInstance().invoke(null, null, req.data.toString());
-                        context.json(new JsonResponse(resultCollector.getMessage()));
+                        context.json(new JsonResponse(resultCollector.toString()));
                     } catch (Exception e) {
                         plugin.getLogger().warn("Run command failed.", e);
                         EventListeners.setConsoleMessageHandler(null);
