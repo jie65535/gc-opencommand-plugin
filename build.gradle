@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.github.jie65535.opencommand'
-version '1.5.1'
+version '1.5.2'
 
 sourceCompatibility = 17
 targetCompatibility = 17
