@@ -35,7 +35,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Download latest grasscutter jar
-        run: wget https://nightly.link/Grasscutters/Grasscutter/workflows/build/development/Grasscutter.zip && mkdir lib && unzip Grasscutter.zip -d lib
+        run: wget https://nightly.link/Grasscutters/Grasscutter/workflows/build/unstable/Grasscutter.zip && mkdir lib && unzip Grasscutter.zip -d lib
         
       - name: Change permission
         run: chmod +x gradlew
