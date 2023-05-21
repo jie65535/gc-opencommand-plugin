@@ -26,7 +26,6 @@ import com.github.jie65535.opencommand.socket.packet.player.PlayerList;
 import emu.grasscutter.Grasscutter;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.utils.JsonUtils;
-import emu.grasscutter.utils.MessageHandler;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -160,19 +159,16 @@ public class SocketClient {
                                         sendPacket(new HttpPacket(404, "Player not found."), packet.packetID);
                                         return;
                                     }
-                                    // Player MessageHandler do not support concurrency
                                     //noinspection SynchronizationOnLocalVariableOrMethodParameter
                                     synchronized (playerData) {
+                                        // Player MessageHandler do not support concurrency
+                                        var handler = EventListeners.getPlayerNewMessageHandler(playerData.getUid());
                                         try {
-                                            var resultCollector = new MessageHandler();
-                                            playerData.setMessageHandler(resultCollector);
                                             CommandMap.getInstance().invoke(playerData, playerData, command);
-                                            sendPacket(new HttpPacket(200, resultCollector.getMessage()), packet.packetID);
+                                            sendPacket(new HttpPacket(200, handler.toString()), packet.packetID);
                                         } catch (Exception e) {
                                             OpenCommandPlugin.getInstance().getLogger().warn("[OpenCommand] Run command failed.", e);
                                             sendPacket(new HttpPacket(500, "error", e.getLocalizedMessage()), packet.packetID);
-                                        } finally {
-                                            playerData.setMessageHandler(null);
                                         }
                                     }
                                 }
