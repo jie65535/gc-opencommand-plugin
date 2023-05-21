@@ -159,11 +159,12 @@ public class SocketClient {
                                         sendPacket(new HttpPacket(404, "Player not found."), packet.packetID);
                                         return;
                                     }
+                                    // Player MessageHandler do not support concurrency
+                                    var handler = EventListeners.getPlayerMessageHandler(playerData.getUid());
                                     //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                                    synchronized (playerData) {
-                                        // Player MessageHandler do not support concurrency
-                                        var handler = EventListeners.getPlayerNewMessageHandler(playerData.getUid());
+                                    synchronized (handler) {
                                         try {
+                                            handler.setLength(0);
                                             CommandMap.getInstance().invoke(playerData, playerData, command);
                                             sendPacket(new HttpPacket(200, handler.toString()), packet.packetID);
                                         } catch (Exception e) {

@@ -152,11 +152,12 @@ public final class OpenCommandHandler implements Router {
                         context.json(new JsonResponse(404, "Player not found"));
                         return;
                     }
+                    // Player MessageHandler do not support concurrency
+                    var handler = EventListeners.getPlayerMessageHandler(player.getUid());
                     //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                    synchronized (player) {
-                        // Player MessageHandler do not support concurrency
-                        var handler = EventListeners.getPlayerNewMessageHandler(player.getUid());
+                    synchronized (handler) {
                         try {
+                            handler.setLength(0);
                             CommandMap.getInstance().invoke(player, player, command);
                             context.json(new JsonResponse(handler.toString()));
                         } catch (Exception e) {

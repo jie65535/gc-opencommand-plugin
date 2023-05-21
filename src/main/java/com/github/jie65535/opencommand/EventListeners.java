@@ -44,13 +44,11 @@ public final class EventListeners {
      * @param uid 玩家uid
      * @return 新的玩家消息处理类
      */
-    public static StringBuilder getPlayerNewMessageHandler(int uid) {
+    public static StringBuilder getPlayerMessageHandler(int uid) {
         var handler = playerMessageHandlers.get(uid);
         if (handler == null) {
             handler = new StringBuilder();
             playerMessageHandlers.put(uid, handler);
-        } else {
-            handler.setLength(0);
         }
         return handler;
     }
