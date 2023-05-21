@@ -51,155 +51,159 @@ public final class OpenCommandOnlyHttpHandler implements Router {
 
     public static void handle(Context context) {
         var plugin = OpenCommandPlugin.getInstance();
-        var config = plugin.getConfig();
-        var data = plugin.getData();
-        var now = new Date();
-        // Trigger cleanup action
-        cleanupExpiredCodes();
-        data.removeExpiredClients();
+        try {
+            var config = plugin.getConfig();
+            var data = plugin.getData();
+            var now = new Date();
+            // Trigger cleanup action
+            cleanupExpiredCodes();
+            data.removeExpiredClients();
 
-        var req = context.bodyAsClass(JsonRequest.class);
-        if (req.action.equals("sendCode")) {
-            int playerId = (int) req.data;
-            var player = SocketData.getPlayer(playerId);
-            if (player == null) {
-                context.json(new JsonResponse(404, "Player Not Found."));
-            } else {
-                if (codeExpireTime.containsKey(playerId)) {
-                    var expireTime = codeExpireTime.get(playerId);
-                    if (now.before(expireTime)) {
-                        context.json(new JsonResponse(403, "Requests are too frequent"));
-                        return;
+            var req = context.bodyAsClass(JsonRequest.class);
+            if (req.action.equals("sendCode")) {
+                int playerId = (int) req.data;
+                var player = SocketData.getPlayer(playerId);
+                if (player == null) {
+                    context.json(new JsonResponse(404, "Player Not Found."));
+                } else {
+                    if (codeExpireTime.containsKey(playerId)) {
+                        var expireTime = codeExpireTime.get(playerId);
+                        if (now.before(expireTime)) {
+                            context.json(new JsonResponse(403, "Requests are too frequent"));
+                            return;
+                        }
                     }
+
+                    String token = req.token;
+                    if (token == null || token.isEmpty())
+                        token = Utils.bytesToHex(Crypto.createSessionKey(32));
+                    int code = Utils.randomRange(1000, 9999);
+                    codeExpireTime.put(playerId, new Date(now.getTime() + config.codeExpirationTime_S * 1000L));
+                    codes.put(token, code);
+                    data.addClient(new Client(token, playerId, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L)));
+                    Player.dropMessage(playerId, "[Open Command] Verification code: " + code);
+                    context.json(new JsonResponse(token));
                 }
-
-                String token = req.token;
-                if (token == null || token.isEmpty())
-                    token = Utils.bytesToHex(Crypto.createSessionKey(32));
-                int code = Utils.randomRange(1000, 9999);
-                codeExpireTime.put(playerId, new Date(now.getTime() + config.codeExpirationTime_S * 1000L));
-                codes.put(token, code);
-                data.addClient(new Client(token, playerId, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L)));
-                Player.dropMessage(playerId, "[Open Command] Verification code: " + code);
-                context.json(new JsonResponse(token));
-            }
-            return;
-        } else if (req.action.equals("ping")) {
-            context.json(new JsonResponse());
-            return;
-        } else if (req.action.equals("online")) {
-            context.json(new JsonResponse(200, "Success", SocketData.getOnlinePlayer()));
-            return;
-        }
-
-        // token is required
-        if (req.token == null || req.token.isEmpty()) {
-            context.json(new JsonResponse(401, "Unauthorized"));
-            return;
-        }
-        var isConsole = req.token.equals(config.consoleToken);
-        var client = data.getClientByToken(req.token);
-        if (!isConsole && client == null) {
-            context.json(new JsonResponse(401, "Unauthorized"));
-            return;
-        }
-
-        if (isConsole) {
-            if (req.action.equals("verify")) {
+                return;
+            } else if (req.action.equals("ping")) {
                 context.json(new JsonResponse());
                 return;
-            } else if (req.action.equals("command")) {
-                var server = SocketServer.getClientInfoByUuid(req.server);
-                if (server == null) {
-                    context.json(new JsonResponse(404, "Server Not Found."));
-                    return;
-                }
-                plugin.getLogger().info(String.format("IP: %s run command in console > %s", context.ip(), req.data));
-                var wait = new SocketDataWait<HttpPacket>(2000L) {
-                    @Override
-                    public void run() {
-                    }
-
-                    @Override
-                    public HttpPacket initData(HttpPacket data) {
-                        return data;
-                    }
-
-                    @Override
-                    public void timeout() {
-                    }
-                };
-
-                SocketServer.sendPacketAndWait(server.ip, new RunConsoleCommand(req.data.toString()), wait);
-                var packet = wait.getData();
-                if (packet == null) {
-                    context.json(new JsonResponse(408, "Timeout"));
-                    return;
-                }
-                context.json(new JsonResponse(packet.code, packet.message, packet.data));
-                return;
-            } else if (req.action.equals("server")) {
-                context.json(new JsonResponse(200, "Success", SocketServer.getOnlineClient()));
-                return;
-            } else if (req.action.equals("runmode")) {
-                context.json(new JsonResponse(200, "Success", 1));
+            } else if (req.action.equals("online")) {
+                context.json(new JsonResponse(200, "Success", SocketData.getOnlinePlayer()));
                 return;
             }
-        } else if (codes.containsKey(req.token)) {
-            if (req.action.equals("verify")) {
-                if (codes.get(req.token).equals(req.data)) {
-                    codes.remove(req.token);
+
+            // token is required
+            if (req.token == null || req.token.isEmpty()) {
+                context.json(new JsonResponse(401, "Unauthorized"));
+                return;
+            }
+            var isConsole = req.token.equals(config.consoleToken);
+            var client = data.getClientByToken(req.token);
+            if (!isConsole && client == null) {
+                context.json(new JsonResponse(401, "Unauthorized"));
+                return;
+            }
+
+            if (isConsole) {
+                if (req.action.equals("verify")) {
+                    context.json(new JsonResponse());
+                    return;
+                } else if (req.action.equals("command")) {
+                    var server = SocketServer.getClientInfoByUuid(req.server);
+                    if (server == null) {
+                        context.json(new JsonResponse(404, "Server Not Found."));
+                        return;
+                    }
+                    plugin.getLogger().info(String.format("IP: %s run command in console > %s", context.ip(), req.data));
+                    var wait = new SocketDataWait<HttpPacket>(2000L) {
+                        @Override
+                        public void run() {
+                        }
+
+                        @Override
+                        public HttpPacket initData(HttpPacket data) {
+                            return data;
+                        }
+
+                        @Override
+                        public void timeout() {
+                        }
+                    };
+
+                    SocketServer.sendPacketAndWait(server.ip, new RunConsoleCommand(req.data.toString()), wait);
+                    var packet = wait.getData();
+                    if (packet == null) {
+                        context.json(new JsonResponse(408, "Timeout"));
+                        return;
+                    }
+                    context.json(new JsonResponse(packet.code, packet.message, packet.data));
+                    return;
+                } else if (req.action.equals("server")) {
+                    context.json(new JsonResponse(200, "Success", SocketServer.getOnlineClient()));
+                    return;
+                } else if (req.action.equals("runmode")) {
+                    context.json(new JsonResponse(200, "Success", 1));
+                    return;
+                }
+            } else if (codes.containsKey(req.token)) {
+                if (req.action.equals("verify")) {
+                    if (codes.get(req.token).equals(req.data)) {
+                        codes.remove(req.token);
+                        // update token expire time
+                        client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
+                        context.json(new JsonResponse());
+                        plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", client.playerId, context.ip()));
+                        plugin.saveData();
+                    } else {
+                        context.json(new JsonResponse(400, "Verification failed"));
+                    }
+                    return;
+                }
+            } else {
+                if (req.action.equals("command")) {
+                    SocketDataWait<HttpPacket> socketDataWait = new SocketDataWait<>(1000L * 10L) {
+                        @Override
+                        public void run() {
+                        }
+
+                        @Override
+                        public HttpPacket initData(HttpPacket data) {
+                            return data;
+                        }
+
+                        @Override
+                        public void timeout() {
+                        }
+                    };
+
                     // update token expire time
                     client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
-                    context.json(new JsonResponse());
-                    plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", client.playerId, context.ip()));
-                    plugin.saveData();
-                } else {
-                    context.json(new JsonResponse(400, "Verification failed"));
-                }
-                return;
-            }
-        } else {
-            if (req.action.equals("command")) {
-                SocketDataWait<HttpPacket> socketDataWait = new SocketDataWait<>(1000L * 10L) {
-                    @Override
-                    public void run() {
+                    var command = req.data.toString();
+                    var player = new Player();
+                    player.uid = client.playerId;
+                    player.type = PlayerEnum.RunCommand;
+                    player.data = command;
+
+                    if (!SocketServer.sendUidPacketAndWait(client.playerId, player, socketDataWait)) {
+                        context.json(new JsonResponse(404, "Player Not Found."));
+                        return;
                     }
 
-                    @Override
-                    public HttpPacket initData(HttpPacket data) {
-                        return data;
+
+                    HttpPacket httpPacket = socketDataWait.getData();
+                    if (httpPacket == null) {
+                        context.json(new JsonResponse(500, "error", "Wait timeout"));
+                        return;
                     }
-
-                    @Override
-                    public void timeout() {
-                    }
-                };
-
-                // update token expire time
-                client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
-                var command = req.data.toString();
-                var player = new Player();
-                player.uid = client.playerId;
-                player.type = PlayerEnum.RunCommand;
-                player.data = command;
-
-                if (!SocketServer.sendUidPacketAndWait(client.playerId, player, socketDataWait)) {
-                    context.json(new JsonResponse(404, "Player Not Found."));
+                    context.json(new JsonResponse(httpPacket.code, httpPacket.message));
                     return;
                 }
-
-
-                HttpPacket httpPacket = socketDataWait.getData();
-                if (httpPacket == null) {
-                    context.json(new JsonResponse(500, "error", "Wait timeout"));
-                    return;
-                }
-                context.json(new JsonResponse(httpPacket.code, httpPacket.message));
-                return;
             }
+            context.json(new JsonResponse(403, "forbidden"));
+        } catch (Exception ex) {
+            plugin.getLogger().error("[OpenCommand] handler error.", ex);
         }
-        context.json(new JsonResponse(403, "forbidden"));
     }
 
     private static void cleanupExpiredCodes() {

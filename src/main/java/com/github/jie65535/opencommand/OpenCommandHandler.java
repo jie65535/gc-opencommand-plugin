@@ -50,133 +50,137 @@ public final class OpenCommandHandler implements Router {
 
     public static void handle(Context context) {
         var plugin = OpenCommandPlugin.getInstance();
-        var config = plugin.getConfig();
-        var data = plugin.getData();
-        var now = new Date();
-        // Trigger cleanup action
-        cleanupExpiredCodes();
-        data.removeExpiredClients();
+        try {
+            var config = plugin.getConfig();
+            var data = plugin.getData();
+            var now = new Date();
+            // Trigger cleanup action
+            cleanupExpiredCodes();
+            data.removeExpiredClients();
 
-        var req = context.bodyAsClass(JsonRequest.class);
-        if (req.action.equals("sendCode")) {
-            int playerId = (int) req.data;
-            var player = plugin.getServer().getPlayerByUid(playerId);
-            if (player == null) {
-                context.json(new JsonResponse(404, "Player Not Found."));
-            } else {
-                if (codeExpireTime.containsKey(playerId)) {
-                    var expireTime = codeExpireTime.get(playerId);
-                    if (now.before(expireTime)) {
-                        context.json(new JsonResponse(403, "Requests are too frequent"));
-                        return;
+            var req = context.bodyAsClass(JsonRequest.class);
+            if (req.action.equals("sendCode")) {
+                int playerId = (int) req.data;
+                var player = plugin.getServer().getPlayerByUid(playerId);
+                if (player == null) {
+                    context.json(new JsonResponse(404, "Player Not Found."));
+                } else {
+                    if (codeExpireTime.containsKey(playerId)) {
+                        var expireTime = codeExpireTime.get(playerId);
+                        if (now.before(expireTime)) {
+                            context.json(new JsonResponse(403, "Requests are too frequent"));
+                            return;
+                        }
                     }
+
+                    String token = req.token;
+                    if (token == null || token.isEmpty())
+                        token = Utils.bytesToHex(Crypto.createSessionKey(32));
+                    int code = Utils.randomRange(1000, 9999);
+                    codeExpireTime.put(playerId, new Date(now.getTime() + config.codeExpirationTime_S * 1000L));
+                    codes.put(token, code);
+                    data.addClient(new Client(token, playerId, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L)));
+                    player.dropMessage("[Open Command] Verification code: " + code);
+                    context.json(new JsonResponse(token));
                 }
-
-                String token = req.token;
-                if (token == null || token.isEmpty())
-                    token = Utils.bytesToHex(Crypto.createSessionKey(32));
-                int code = Utils.randomRange(1000, 9999);
-                codeExpireTime.put(playerId, new Date(now.getTime() + config.codeExpirationTime_S * 1000L));
-                codes.put(token, code);
-                data.addClient(new Client(token, playerId, new Date(now.getTime() + config.tempTokenExpirationTime_S * 1000L)));
-                player.dropMessage("[Open Command] Verification code: " + code);
-                context.json(new JsonResponse(token));
-            }
-            return;
-        } else if (req.action.equals("ping")) {
-            context.json(new JsonResponse());
-            return;
-        } else if (req.action.equals("online")) {
-            var p = new ArrayList<String>();
-            plugin.getServer().getPlayers().forEach((uid, player) -> p.add(player.getNickname()));
-            context.json(new JsonResponse(200, "Success", new SocketData.OnlinePlayer(p)));
-            return;
-        }
-
-        // token is required
-        if (req.token == null || req.token.isEmpty()) {
-            context.json(new JsonResponse(401, "Unauthorized"));
-            return;
-        }
-        var isConsole = req.token.equals(config.consoleToken);
-        var client = data.getClientByToken(req.token);
-        if (!isConsole && client == null) {
-            context.json(new JsonResponse(401, "Unauthorized"));
-            return;
-        }
-
-        if (isConsole) {
-            if (req.action.equals("verify")) {
+                return;
+            } else if (req.action.equals("ping")) {
                 context.json(new JsonResponse());
                 return;
-            } else if (req.action.equals("command")) {
-                //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                synchronized (plugin) {
-                    try {
-                        plugin.getLogger().info(String.format("IP: %s run command in console > %s", context.ip(), req.data));
-                        var resultCollector = new StringBuilder();
-                        EventListeners.setConsoleMessageHandler(resultCollector);
-                        CommandMap.getInstance().invoke(null, null, req.data.toString());
-                        context.json(new JsonResponse(resultCollector.toString()));
-                    } catch (Exception e) {
-                        plugin.getLogger().warn("Run command failed.", e);
-                        EventListeners.setConsoleMessageHandler(null);
-                        context.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
-                    }
-                }
-                return;
-            } else if (req.action.equals("runmode")) {
-                context.json(new JsonResponse(200, "Success", 0));
+            } else if (req.action.equals("online")) {
+                var p = new ArrayList<String>();
+                plugin.getServer().getPlayers().forEach((uid, player) -> p.add(player.getNickname()));
+                context.json(new JsonResponse(200, "Success", new SocketData.OnlinePlayer(p)));
                 return;
             }
-        } else if (codes.containsKey(req.token)) {
-            if (req.action.equals("verify")) {
-                if (codes.get(req.token).equals(req.data)) {
-                    codes.remove(req.token);
-                    // update token expire time
-                    client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
+
+            // token is required
+            if (req.token == null || req.token.isEmpty()) {
+                context.json(new JsonResponse(401, "Unauthorized"));
+                return;
+            }
+            var isConsole = req.token.equals(config.consoleToken);
+            var client = data.getClientByToken(req.token);
+            if (!isConsole && client == null) {
+                context.json(new JsonResponse(401, "Unauthorized"));
+                return;
+            }
+
+            if (isConsole) {
+                if (req.action.equals("verify")) {
                     context.json(new JsonResponse());
-                    plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", client.playerId, context.ip()));
-                    plugin.saveData();
-                } else {
-                    context.json(new JsonResponse(400, "Verification failed"));
-                }
-                return;
-            }
-        } else {
-            if (req.action.equals("command")) {
-                // update token expire time
-                client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
-                var player = plugin.getServer().getPlayerByUid(client.playerId);
-                var command = req.data.toString();
-                if (player == null) {
-                    context.json(new JsonResponse(404, "Player not found"));
+                    return;
+                } else if (req.action.equals("command")) {
+                    //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                    synchronized (plugin) {
+                        try {
+                            plugin.getLogger().info(String.format("IP: %s run command in console > %s", context.ip(), req.data));
+                            var resultCollector = new StringBuilder();
+                            EventListeners.setConsoleMessageHandler(resultCollector);
+                            CommandMap.getInstance().invoke(null, null, req.data.toString());
+                            context.json(new JsonResponse(resultCollector.toString()));
+                        } catch (Exception e) {
+                            plugin.getLogger().warn("Run command failed.", e);
+                            EventListeners.setConsoleMessageHandler(null);
+                            context.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
+                        }
+                    }
+                    return;
+                } else if (req.action.equals("runmode")) {
+                    context.json(new JsonResponse(200, "Success", 0));
                     return;
                 }
-                // Player MessageHandler do not support concurrency
-                var handler = playerMessageHandlers.get(player.getUid());
-                if (handler == null) {
-                    handler = new MessageHandler();
-                    playerMessageHandlers.put(player.getUid(), handler);
-                }
-                //noinspection SynchronizationOnLocalVariableOrMethodParameter
-                synchronized (handler) {
-                    try {
-                        handler.setMessage("");
-                        player.setMessageHandler(handler);
-                        CommandMap.getInstance().invoke(player, player, command);
-                        context.json(new JsonResponse(handler.getMessage()));
-                    } catch (Exception e) {
-                        plugin.getLogger().warn("Run command failed.", e);
-                        context.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
-                    } finally {
-                        player.setMessageHandler(null);
+            } else if (codes.containsKey(req.token)) {
+                if (req.action.equals("verify")) {
+                    if (codes.get(req.token).equals(req.data)) {
+                        codes.remove(req.token);
+                        // update token expire time
+                        client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
+                        context.json(new JsonResponse());
+                        plugin.getLogger().info(String.format("Player %d has passed the verification, ip: %s", client.playerId, context.ip()));
+                        plugin.saveData();
+                    } else {
+                        context.json(new JsonResponse(400, "Verification failed"));
                     }
+                    return;
                 }
-                return;
+            } else {
+                if (req.action.equals("command")) {
+                    // update token expire time
+                    client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
+                    var player = plugin.getServer().getPlayerByUid(client.playerId);
+                    var command = req.data.toString();
+                    if (player == null) {
+                        context.json(new JsonResponse(404, "Player not found"));
+                        return;
+                    }
+                    // Player MessageHandler do not support concurrency
+                    var handler = playerMessageHandlers.get(player.getUid());
+                    if (handler == null) {
+                        handler = new MessageHandler();
+                        playerMessageHandlers.put(player.getUid(), handler);
+                    }
+                    //noinspection SynchronizationOnLocalVariableOrMethodParameter
+                    synchronized (handler) {
+                        try {
+                            handler.setMessage("");
+                            player.setMessageHandler(handler);
+                            CommandMap.getInstance().invoke(player, player, command);
+                            context.json(new JsonResponse(handler.getMessage()));
+                        } catch (Exception e) {
+                            plugin.getLogger().warn("Run command failed.", e);
+                            context.json(new JsonResponse(500, "error", e.getLocalizedMessage()));
+                        } finally {
+                            player.setMessageHandler(null);
+                        }
+                    }
+                    return;
+                }
             }
+            context.json(new JsonResponse(403, "forbidden"));
+        } catch (Throwable ex) {
+            plugin.getLogger().error("[OpenCommand] handler error.", ex);
         }
-        context.json(new JsonResponse(403, "forbidden"));
     }
 
     private static void cleanupExpiredCodes() {
