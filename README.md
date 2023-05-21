@@ -4,6 +4,10 @@
 
 一个为第三方客户端开放GC命令执行接口的插件
 
+## 分支说明
+
+本分支目的在于兼容 GC 的 `unstable` 分支
+
 ## 使用本插件的应用
 - [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows 客户端工具
 - [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) 插件，在QQ里执行命令
@@ -70,7 +74,7 @@
 
 ## `config.json`
 
-```json
+```json5
 {
   // 控制台连接令牌
   "consoleToken": "",
@@ -259,7 +263,7 @@ public final class JsonResponse {
 | message | `Success` | `String`     |
 | data    | `{}`      | `JsonObject` |
 
-```json
+```json5
 {
   "retcode": 200,
   "message": "success",

@@ -4,6 +4,10 @@
 
 A plugin that opens the GC command execution interface for third-party clients
 
+## Branch Description
+
+The purpose of this branch is to be compatible with the 'unstable' branch of GC
+
 ## Applications using this plug-in
 - [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows Client Tools
 - [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) Plugin, run commands in QQ
@@ -244,7 +248,7 @@ Success
 | message | `Success`     | `String`     |
 | data    | `{}`          | `JsonObject` |
 
-```json
+```json5
 {
   "retcode": 200,
   "message": "success",
