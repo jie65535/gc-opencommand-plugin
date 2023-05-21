@@ -84,7 +84,7 @@ public final class OpenCommandPlugin extends Plugin {
         } else {
             getHandle().addRouter(OpenCommandHandler.class);
         }
-        getLogger().info("[OpenCommand] Enabled");
+        getLogger().info("[OpenCommand] Enabled. https://github.com/jie65535/gc-opencommand-plugin");
     }
 
     @Override
