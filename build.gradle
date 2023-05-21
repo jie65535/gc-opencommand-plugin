@@ -18,7 +18,7 @@ dependencies {
 }
 
 jar {
-    jar.baseName = 'opencommand'
+    jar.baseName = 'opencommand-for-unstable'
 
     destinationDir = file(".")
 }
