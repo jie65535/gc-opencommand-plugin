@@ -24,24 +24,54 @@ import emu.grasscutter.game.player.Player;
 import emu.grasscutter.server.event.game.ReceiveCommandFeedbackEvent;
 import emu.grasscutter.server.event.player.PlayerJoinEvent;
 import emu.grasscutter.server.event.player.PlayerQuitEvent;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 
 import java.util.ArrayList;
 
 public final class EventListeners {
 
     private static StringBuilder consoleMessageHandler;
+    private static final Int2ObjectMap<StringBuilder> playerMessageHandlers = new Int2ObjectOpenHashMap<>();
 
     public static void setConsoleMessageHandler(StringBuilder handler) {
         consoleMessageHandler = handler;
     }
 
+    /**
+     * 获取新的玩家消息处理类
+     * 获取时将创建或清空消息处理器并返回实例，**在执行命令前获取！**
+     * @param uid 玩家uid
+     * @return 新的玩家消息处理类
+     */
+    public static StringBuilder getPlayerNewMessageHandler(int uid) {
+        var handler = playerMessageHandlers.get(uid);
+        if (handler == null) {
+            handler = new StringBuilder();
+            playerMessageHandlers.put(uid, handler);
+        } else {
+            handler.setLength(0);
+        }
+        return handler;
+    }
+
+    /**
+     * 命令执行反馈事件处理
+     */
     public static void onCommandResponse(ReceiveCommandFeedbackEvent event) {
-        if (consoleMessageHandler != null && event.getPlayer() == null) {
-            if (!consoleMessageHandler.isEmpty()) {
+        StringBuilder handler;
+        if (event.getPlayer() == null) {
+            handler = consoleMessageHandler;
+        } else {
+            handler = playerMessageHandlers.get(event.getPlayer().getUid());
+        }
+
+        if (handler != null) {
+            if (!handler.isEmpty()) {
                 // New line
-                consoleMessageHandler.append(System.lineSeparator());
+                handler.append(System.lineSeparator());
             }
-            consoleMessageHandler.append(event.getMessage());
+            handler.append(event.getMessage());
         }
     }
 
@@ -60,6 +90,10 @@ public final class EventListeners {
         SocketClient.sendPacket(playerList);
     }
 
+    /**
+     * 仅游戏模式下玩家离开事件处理方法
+     * 用于更新玩家列表
+     */
     public static void onPlayerQuit(PlayerQuitEvent playerQuitEvent) {
         PlayerList playerList = new PlayerList();
         playerList.player = Grasscutter.getGameServer().getPlayers().size();
@@ -72,5 +106,16 @@ public final class EventListeners {
         playerNames.remove(playerQuitEvent.getPlayer().getNickname());
         playerList.playerList = playerNames;
         SocketClient.sendPacket(playerList);
+    }
+
+    /**
+     * 玩家离开事件处理 2
+     * 用于清理内存
+     */
+    public static void onPlayerQuit2(PlayerQuitEvent playerQuitEvent) {
+        var uid = playerQuitEvent.getPlayer().getUid();
+        if (playerMessageHandlers.containsKey(uid)) {
+            playerMessageHandlers.remove(uid);
+        }
     }
 }

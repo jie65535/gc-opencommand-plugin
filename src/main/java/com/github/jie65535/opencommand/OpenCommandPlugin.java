@@ -59,9 +59,15 @@ public final class OpenCommandPlugin extends Plugin {
 
     @Override
     public void onEnable() {
+        // 监听命令执行反馈
         new EventHandler<>(ReceiveCommandFeedbackEvent.class)
                 .priority(HandlerPriority.HIGH)
                 .listener(EventListeners::onCommandResponse)
+                .register(this);
+        // 监听玩家离开事件
+        new EventHandler<>(PlayerQuitEvent.class)
+                .priority(HandlerPriority.NORMAL)
+                .listener(EventListeners::onPlayerQuit2)
                 .register(this);
         if (runMode == Grasscutter.ServerRunMode.GAME_ONLY) {
             // 仅运行游戏服务器时注册玩家加入和离开事件
