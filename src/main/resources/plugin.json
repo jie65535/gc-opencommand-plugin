@@ -1,7 +1,8 @@
 {
   "name": "opencommand-plugin",
   "description": "Open command interface for third-party clients",
-  "version": "dev-1.5.2",
+  "version": "1.6.0",
   "mainClass": "com.github.jie65535.opencommand.OpenCommandPlugin",
-  "authors": ["jie65535", "方块君"]
+  "authors": ["jie65535", "方块君"],
+  "api": 2
 }
