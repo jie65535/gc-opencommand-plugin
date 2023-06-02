@@ -58,7 +58,7 @@ public final class OpenCommandHandler implements Router {
 
             var req = context.bodyAsClass(JsonRequest.class);
             if (req.action.equals("sendCode")) {
-                int playerId = (int) req.data;
+                int playerId = Integer.parseInt(req.data.toString());
                 var player = plugin.getServer().getPlayerByUid(playerId);
                 if (player == null) {
                     context.json(new JsonResponse(404, "Player Not Found."));

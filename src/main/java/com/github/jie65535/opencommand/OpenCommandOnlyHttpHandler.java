@@ -61,7 +61,7 @@ public final class OpenCommandOnlyHttpHandler implements Router {
 
             var req = context.bodyAsClass(JsonRequest.class);
             if (req.action.equals("sendCode")) {
-                int playerId = (int) req.data;
+                int playerId = Integer.parseInt(req.data.toString());
                 var player = SocketData.getPlayer(playerId);
                 if (player == null) {
                     context.json(new JsonResponse(404, "Player Not Found."));
