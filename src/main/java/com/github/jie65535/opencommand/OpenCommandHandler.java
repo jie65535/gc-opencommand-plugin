@@ -130,7 +130,7 @@ public final class OpenCommandHandler implements Router {
                 }
             } else if (codes.containsKey(req.token)) {
                 if (req.action.equals("verify")) {
-                    if (codes.get(req.token).equals(req.data)) {
+                    if (codes.get(req.token) == (int)Double.parseDouble(req.data.toString())) {
                         codes.remove(req.token);
                         // update token expire time
                         client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
