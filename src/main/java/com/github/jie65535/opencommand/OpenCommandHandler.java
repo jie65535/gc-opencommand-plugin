@@ -159,6 +159,8 @@ public final class OpenCommandHandler implements Router {
                         try {
                             handler.setLength(0);
                             for (var command : rawMessage.split("\n[/!]|\\|")) {
+                                command = command.trim();
+                                if (command.isEmpty()) continue;
                                 if (command.charAt(0) == '/' || command.charAt(0) == '!') {
                                     command = command.substring(1);
                                 }
