@@ -26,7 +26,9 @@ import emu.grasscutter.server.event.HandlerPriority;
 import emu.grasscutter.server.event.game.ReceiveCommandFeedbackEvent;
 import emu.grasscutter.server.event.player.PlayerJoinEvent;
 import emu.grasscutter.server.event.player.PlayerQuitEvent;
+import emu.grasscutter.utils.Crypto;
 import emu.grasscutter.utils.JsonUtils;
+import emu.grasscutter.utils.Utils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -105,28 +107,39 @@ public final class OpenCommandPlugin extends Plugin {
         var configFile = new File(getDataFolder(), "config.json");
         if (!configFile.exists()) {
             config = new OpenCommandConfig();
-            try (var file = new FileWriter(configFile)) {
-                file.write(JsonUtils.encode(config));
-            } catch (IOException e) {
-                getLogger().error("[OpenCommand] Unable to write to config file.");
-            } catch (Exception e) {
-                getLogger().error("[OpenCommand] Unable to save config file.");
-            }
+            saveConfig();
         } else {
             try {
                 config = JsonUtils.decode(Files.readString(configFile.toPath(), StandardCharsets.UTF_8),
                         OpenCommandConfig.class);
             } catch (Exception exception) {
+                config = new OpenCommandConfig();
                 getLogger().error("[OpenCommand] There was an error while trying to load the configuration from config.json. Please make sure that there are no syntax errors. If you want to start with a default configuration, delete your existing config.json.");
             }
-            if (config == null) {
-                config = new OpenCommandConfig();
-            }
         }
+
+        // 检查控制台Token
+        if (config.consoleToken == null || config.consoleToken.isEmpty()) {
+            config.consoleToken = Utils.base64Encode(Crypto.createSessionKey(24));
+            saveConfig();
+            getLogger().warn("Detected that consoleToken is empty, automatically generated Token for you as follows: {}", config.consoleToken);
+        }
+
         try {
             runMode = Grasscutter.getConfig().server.runMode;
         } catch (Exception ex) {
             getLogger().warn("[OpenCommand] Failed to load server configuration, default HYBRID mode is being used.");
+        }
+    }
+
+    private void saveConfig() {
+        var configFile = new File(getDataFolder(), "config.json");
+        try (var file = new FileWriter(configFile)) {
+            file.write(JsonUtils.encode(config));
+        } catch (IOException e) {
+            getLogger().error("[OpenCommand] Unable to write to config file.");
+        } catch (Exception e) {
+            getLogger().error("[OpenCommand] Unable to save config file.");
         }
     }
 

@@ -4,6 +4,14 @@
 
 一个为第三方客户端开放GC命令执行接口的插件
 
+自 `1.7.0` 起可以通过 `|` 或者换行来分隔多条命令，例如：
+```shell
+/a 1 | /a 2
+/a 3
+```
+
+调用 `ping` 响应数据将包含插件版本号。
+
 ## 使用本插件的应用
 - [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows 客户端工具
 - [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) 插件，在QQ里执行命令
@@ -15,42 +23,12 @@
 1. 在 [Release](https://github.com/jie65535/gc-opencommand-plugin/releases) 下载 `jar`
 2. 放入 `plugins` 文件夹即可
 
-> 注意，如果出现以下错误：
-> ```log
-> INFO:PluginManager Enabling plugin: opencommand-plugin
-> Exception in thread "main" java.lang.NoSuchMethodError: 'void emu.grasscutter.server.event.EventHandler.register(emu.grasscutter.plugin.Plugin)'
-> at com.github.jie65535.opencommand.OpenCommandPlugin.onEnable(OpenCommandPlugin.java:49)
-> at emu.grasscutter.plugin.PluginManager.lambda$enablePlugins$3(PluginManager.java:131)
-> ```
-> 请使用v1.2.1版本插件，因为该报错表示你的服务端是旧版！
-
 ## 控制台连接
 
 1. 首次启动时，会在 `plugins` 目录下生成一个 `opencommand-plugin` 目录，打开并编辑 `config.json`
-2. 设置 `consoleToken` 的值为你的连接秘钥，建议使用至少32字符的长随机字符串。
+2. 设置 `consoleToken` 的值为你的连接秘钥，建议使用至少32字符的长随机字符串。（检测到为空时会自动生成）
 3. 重新启动服务端即可生效配置
 4. 在客户端中选择控制台身份，并填写你的 `consoleToken` 即可以控制台身份运行指令
-
-## 多服务器
-### 主服务器 (Dispatch)
-1. 在 `opencommand-plugin` 目录下打开 `config.json`
-2. 修改 `socketPort` 值为一个未被使用的端口
-3. 设置 `socketToken` 多服务器通信密钥，建议使用至少32字符的长随机字符串。
-4. 重新启动服务端即可生效配置
-
-### 子服务器 (Game)
-1. 在 `opencommand-plugin` 目录下打开 `config.json`
-2. 修改 `socketHost` 和 `socketPort` 值为主服务器的地址和端口
-3. 设置 `socketToken` 和主服务器相同的值
-4. 设置 `socketDisplayName` 值为你的服务器名称 (用途请见[下方](https://github.com/jie65535/gc-opencommand-plugin#%E8%8E%B7%E5%8F%96%E5%A4%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%88%97%E8%A1%A8))
-5. 重新启动服务端即可生效配置
-
-## 构建说明
-
-1. 克隆仓库
-2. 在目录下新建 `lib` 目录
-3. 将 `grasscutter-1.1.x-dev.jar` 放入 `lib` 目录
-4. `gradle build`
 
 ## 玩家使用流程
 
@@ -66,13 +44,34 @@
 3. 使用 `token` 和**4位整数验证码**发送 `verify` 校验
 4. 如果验证通过，可以使用该 `token` 执行 `command` 动作
 
+## 插件构建说明
+
+1. 克隆仓库
+2. 在目录下新建 `lib` 目录
+3. 将 `grasscutter-1.1.x-dev.jar` 放入 `lib` 目录
+4. `gradle build`
+
+## 多服务器
+### 主服务器 (Dispatch)
+1. 在 `opencommand-plugin` 目录下打开 `config.json`
+2. 修改 `socketPort` 值为一个未被使用的端口
+3. 设置 `socketToken` 多服务器通信密钥，建议使用至少32字符的长随机字符串。
+4. 重新启动服务端即可生效配置
+
+### 子服务器 (Game)
+1. 在 `opencommand-plugin` 目录下打开 `config.json`
+2. 修改 `socketHost` 和 `socketPort` 值为主服务器的地址和端口
+3. 设置 `socketToken` 和主服务器相同的值
+4. 设置 `socketDisplayName` 值为你的服务器名称 (用途请见[下方](https://github.com/jie65535/gc-opencommand-plugin#%E8%8E%B7%E5%8F%96%E5%A4%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%88%97%E8%A1%A8))
+5. 重新启动服务端即可生效配置
+
 ---
 
 ## `config.json`
 
-```json
+```json5
 {
-  // 控制台连接令牌
+  // 控制台连接令牌（检测到空时会自动生成）
   "consoleToken": "",
   // 验证码过期时间（秒）
   "codeExpirationTime_S": 60,
@@ -259,7 +258,7 @@ public final class JsonResponse {
 | message | `Success` | `String`     |
 | data    | `{}`      | `JsonObject` |
 
-```json
+```json5
 {
   "retcode": 200,
   "message": "success",

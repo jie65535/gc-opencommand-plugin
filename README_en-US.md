@@ -4,10 +4,19 @@
 
 A plugin that opens the GC command execution interface for third-party clients
 
+Since `1.7.0`, multiple commands can be separated by `|` or newline, for example:
+```shell
+/a 1 | /a 2
+/a 3
+```
+
+Invoking `ping` the response data will contain the plugin version.
+
 ## Applications using this plug-in
 - [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows Client Tools
 - [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) Plugin, run commands in QQ
-- TODO
+- [Yunzai-GrasscutterCommand](https://github.com/Zyy-boop/Yunzai-GrasscutterCommand) —— Yunzai-bot plugin, execute commands in QQ
+- More...
 
 ## Server installation
 
@@ -19,31 +28,9 @@ A plugin that opens the GC command execution interface for third-party clients
 1. When starting for the first time, a `opencommand-plugin` directory will be generated under the `plugins` directory,
    open and edit `config.json`
 2. Set the value of `consoleToken` to your connection key. It is recommended to use a long random string of at least 32
-   characters.
+   characters. (automatically generated when empty is detected)
 3. Restart the server to take effect
 4. Select the console identity in the client, and fill in your `consoleToken` to run the command as the console identity
-
-## Multi server
-### Master server (Dispatch)
-1. Open `config.json` in the `opencommand-plugin` directory
-2. Modify the `socketPort` value to an unused port
-3. Set `sockettoken` multi server communication key. It is recommended to use a long random string of at least 32 characters.
-4. Restart the server to make the configuration effective
-
-### Sub server (Game)
-1. Open `config.json` in the `opencommand-plugin` directory
-2. Modify the `sockethost` and `socketport` values to the address and port of the primary server
-3. Set the same value of `sockettoken` and the primary server
-4. Set the `socketDisplayName` value to your server name (See below for usage [Jump](https://github.com/jie65535/gc-opencommand-plugin/blob/master/README_en-US.md#get-mulit-server-list))
-5. Restart the server to make the configuration effective
-
-## Build
-
-1. `git clone https://github.com/jie65535/gc-opencommand-plugin`
-2. `cd gc-opencommand-plugin`
-3. `mkdir lib`
-4. `mv path/to/grasscutter-1.x.x-dev.jar ./lib`
-5. `gradle build`
 
 ## Player
 
@@ -60,19 +47,50 @@ A plugin that opens the GC command execution interface for third-party clients
 3. Send `verify` check using `token` and **4-digit integer verification code**
 4. If the verification is passed, you can use the `token` to execute the `command` action
 
+## Build
+
+1. `git clone https://github.com/jie65535/gc-opencommand-plugin`
+2. `cd gc-opencommand-plugin`
+3. `mkdir lib`
+4. `mv path/to/grasscutter-1.x.x-dev.jar ./lib`
+5. `gradle build`
+
+## Multi server
+### Master server (Dispatch)
+1. Open `config.json` in the `opencommand-plugin` directory
+2. Modify the `socketPort` value to an unused port
+3. Set `sockettoken` multi server communication key. It is recommended to use a long random string of at least 32 characters.
+4. Restart the server to make the configuration effective
+
+### Sub server (Game)
+1. Open `config.json` in the `opencommand-plugin` directory
+2. Modify the `sockethost` and `socketport` values to the address and port of the primary server
+3. Set the same value of `sockettoken` and the primary server
+4. Set the `socketDisplayName` value to your server name (See below for usage [Jump](https://github.com/jie65535/gc-opencommand-plugin/blob/master/README_en-US.md#get-mulit-server-list))
+5. Restart the server to make the configuration effective
+
 ---
 
 ## `config.json`
 
-```json
+```json5
 {
+   // console connection token (automatically generated when empty is detected)
   "consoleToken": "",
+   // Verification code expiration time (seconds)
   "codeExpirationTime_S": 60,
+   // Temporary token expiration time (seconds)
   "tempTokenExpirationTime_S": 300,
+  // Authorization token last used expiration time (hours)
   "tokenLastUseExpirationTime_H": 48,
-  "socketPort": 5746,
-  "socketToken": "",
-  "socketHost": "127.0.0.1"
+   // Multi-server communication port
+   "socketPort": 5746,
+   // Multi-server communication key
+   "socketToken": "",
+   // Multi-server Dispatch server address
+   "socketHost": "127.0.0.1",
+   // multi-server display name
+   "socketDisplayName": ""
 }
 ```
 
@@ -244,7 +262,7 @@ Success
 | message | `Success`     | `String`     |
 | data    | `{}`          | `JsonObject` |
 
-```json
+```json5
 {
   "retcode": 200,
   "message": "success",

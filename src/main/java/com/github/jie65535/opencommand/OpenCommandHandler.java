@@ -83,7 +83,7 @@ public final class OpenCommandHandler implements Router {
                 }
                 return;
             } else if (req.action.equals("ping")) {
-                context.json(new JsonResponse());
+                context.json(new JsonResponse(plugin.getVersion()));
                 return;
             } else if (req.action.equals("online")) {
                 var p = new ArrayList<String>();
@@ -147,7 +147,7 @@ public final class OpenCommandHandler implements Router {
                     // update token expire time
                     client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
                     var player = plugin.getServer().getPlayerByUid(client.playerId);
-                    var command = req.data.toString();
+                    var rawMessage = req.data.toString();
                     if (player == null) {
                         context.json(new JsonResponse(404, "Player not found"));
                         return;
@@ -158,7 +158,12 @@ public final class OpenCommandHandler implements Router {
                     synchronized (handler) {
                         try {
                             handler.setLength(0);
-                            CommandMap.getInstance().invoke(player, player, command);
+                            for (var command : rawMessage.split("\n[/!]|\\|")) {
+                                if (command.charAt(0) == '/' || command.charAt(0) == '!') {
+                                    command = command.substring(1);
+                                }
+                                CommandMap.getInstance().invoke(player, player, command);
+                            }
                             context.json(new JsonResponse(handler.toString()));
                         } catch (Exception e) {
                             plugin.getLogger().warn("Run command failed.", e);
