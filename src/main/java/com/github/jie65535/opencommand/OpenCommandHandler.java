@@ -22,6 +22,7 @@ import com.github.jie65535.opencommand.json.JsonResponse;
 import com.github.jie65535.opencommand.model.Client;
 import com.github.jie65535.opencommand.socket.SocketData;
 import emu.grasscutter.command.CommandMap;
+import emu.grasscutter.game.player.Player;
 import emu.grasscutter.server.http.Router;
 import emu.grasscutter.utils.Crypto;
 import emu.grasscutter.utils.Utils;
@@ -115,7 +116,7 @@ public final class OpenCommandHandler implements Router {
                             plugin.getLogger().info(String.format("IP: %s run command in console > %s", context.ip(), req.data));
                             var resultCollector = new StringBuilder();
                             EventListeners.setConsoleMessageHandler(resultCollector);
-                            CommandMap.getInstance().invoke(null, null, req.data.toString());
+                            tryInvokeCommand(null, null, req.data.toString());
                             context.json(new JsonResponse(resultCollector.toString()));
                         } catch (Exception e) {
                             plugin.getLogger().warn("Run command failed.", e);
@@ -147,7 +148,6 @@ public final class OpenCommandHandler implements Router {
                     // update token expire time
                     client.tokenExpireTime = new Date(now.getTime() + config.tokenLastUseExpirationTime_H * 60L * 60L * 1000L);
                     var player = plugin.getServer().getPlayerByUid(client.playerId);
-                    var rawMessage = req.data.toString();
                     if (player == null) {
                         context.json(new JsonResponse(404, "Player not found"));
                         return;
@@ -158,14 +158,7 @@ public final class OpenCommandHandler implements Router {
                     synchronized (handler) {
                         try {
                             handler.setLength(0);
-                            for (var command : rawMessage.split("\n[/!]|\\|")) {
-                                command = command.trim();
-                                if (command.isEmpty()) continue;
-                                if (command.charAt(0) == '/' || command.charAt(0) == '!') {
-                                    command = command.substring(1);
-                                }
-                                CommandMap.getInstance().invoke(player, player, command);
-                            }
+                            tryInvokeCommand(player, player, req.data.toString());
                             context.json(new JsonResponse(handler.toString()));
                         } catch (Exception e) {
                             plugin.getLogger().warn("Run command failed.", e);
@@ -178,6 +171,17 @@ public final class OpenCommandHandler implements Router {
             context.json(new JsonResponse(403, "forbidden"));
         } catch (Throwable ex) {
             plugin.getLogger().error("[OpenCommand] handler error.", ex);
+        }
+    }
+
+    private static void tryInvokeCommand(Player sender, Player target, String rawMessage) {
+        for (var command : rawMessage.split("\n[/!]|\\|")) {
+            command = command.trim();
+            if (command.isEmpty()) continue;
+            if (command.charAt(0) == '/' || command.charAt(0) == '!') {
+                command = command.substring(1);
+            }
+            CommandMap.getInstance().invoke(sender, target, command);
         }
     }
 
