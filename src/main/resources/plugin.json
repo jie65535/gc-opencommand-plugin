@@ -4,5 +4,5 @@
   "version": "1.7.0",
   "mainClass": "com.github.jie65535.opencommand.OpenCommandPlugin",
   "authors": ["jie65535", "方块君"],
-  "api": 3
+  "api": 2
 }
