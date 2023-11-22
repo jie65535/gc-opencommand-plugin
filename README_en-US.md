@@ -21,7 +21,15 @@ Invoking `ping` the response data will contain the plugin version.
 ## Server installation
 
 1. Download the `jar` in [Release](https://github.com/jie65535/gc-opencommand-plugin/releases)
-2. Put it in the `plugins` folder
+2. Put it in the `grasscutter/plugins` folder
+3. Restart `grasscutter` server
+
+## Player
+
+1. Fill in the service address in the Tool to check plugin status
+2. Fill in the UID and send the verification code
+3. Fill in the **4-digit integer verification code** received in the game into the Tool verification
+4. Enjoy the convenience!
 
 ## Console connection
 
@@ -32,12 +40,7 @@ Invoking `ping` the response data will contain the plugin version.
 3. Restart the server to take effect
 4. Select the console identity in the client, and fill in your `consoleToken` to run the command as the console identity
 
-## Player
-
-1. Fill in the service address in the client to confirm whether it supports
-2. Fill in the UID and send the verification code
-3. Fill in the **4-digit integer verification code** received in the game into the client verification
-4. Enjoy the convenience!
+---
 
 ## Client request
 
