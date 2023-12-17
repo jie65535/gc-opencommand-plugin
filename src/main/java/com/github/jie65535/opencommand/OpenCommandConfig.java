@@ -1,6 +1,6 @@
 /*
  * gc-opencommand
- * Copyright (C) 2022  jie65535
+ * Copyright (C) 2022-2023 jie65535
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -37,24 +37,4 @@ public class OpenCommandConfig {
      * Token 最后使用过期时间（单位小时）
      */
     public int tokenLastUseExpirationTime_H = 48;
-
-    /**
-     * Socket 端口
-     */
-    public int socketPort = 5746;
-
-    /**
-     * Socket Token
-     */
-    public String socketToken = "";
-
-    /**
-     * Socket 主机地址
-     */
-    public String socketHost = "127.0.0.1";
-
-    /**
-     * Socket 显示名称
-     */
-    public String socketDisplayName = "";
 }

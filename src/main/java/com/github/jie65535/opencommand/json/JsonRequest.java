@@ -1,6 +1,6 @@
 /*
  * gc-opencommand
- * Copyright (C) 2022  jie65535
+ * Copyright (C) 2022-2023 jie65535
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published

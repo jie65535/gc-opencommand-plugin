@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.github.jie65535.opencommand'
-version '1.7.0'
+version '1.0.0'
 
 sourceCompatibility = 17
 targetCompatibility = 17
@@ -18,7 +18,7 @@ dependencies {
 }
 
 jar {
-    jar.baseName = 'opencommand'
+    jar.baseName = 'OpenCommand-LunarCore'
 
     destinationDir = file(".")
 }

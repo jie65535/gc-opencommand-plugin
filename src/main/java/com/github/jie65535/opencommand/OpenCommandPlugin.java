@@ -1,6 +1,6 @@
 /*
  * gc-opencommand
- * Copyright (C) 2022  jie65535
+ * Copyright (C) 2022-2023 jie65535
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -17,26 +17,24 @@
  */
 package com.github.jie65535.opencommand;
 
-import com.github.jie65535.opencommand.socket.SocketClient;
-import com.github.jie65535.opencommand.socket.SocketServer;
-import emu.grasscutter.Grasscutter;
-import emu.grasscutter.plugin.Plugin;
-import emu.grasscutter.server.event.EventHandler;
-import emu.grasscutter.server.event.HandlerPriority;
-import emu.grasscutter.server.event.game.ReceiveCommandFeedbackEvent;
-import emu.grasscutter.server.event.player.PlayerJoinEvent;
-import emu.grasscutter.server.event.player.PlayerQuitEvent;
-import emu.grasscutter.utils.Crypto;
-import emu.grasscutter.utils.JsonUtils;
-import emu.grasscutter.utils.Utils;
+import emu.lunarcore.LunarCore;
+import emu.lunarcore.plugin.Plugin;
+import emu.lunarcore.util.Crypto;
+import emu.lunarcore.util.JsonUtils;
+import org.slf4j.Logger;
 
 import java.io.*;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 public final class OpenCommandPlugin extends Plugin {
 
     private static OpenCommandPlugin instance;
+
+    private OpenCommandPlugin(Identifier identifier, URLClassLoader classLoader, File dataFolder, Logger logger) {
+        super(identifier, classLoader, dataFolder, logger);
+    }
 
     public static OpenCommandPlugin getInstance() {
         return instance;
@@ -46,8 +44,6 @@ public final class OpenCommandPlugin extends Plugin {
 
     private OpenCommandData data;
 
-    private Grasscutter.ServerRunMode runMode = Grasscutter.ServerRunMode.HYBRID;
-
     @Override
     public void onLoad() {
         instance = this;
@@ -55,37 +51,11 @@ public final class OpenCommandPlugin extends Plugin {
         loadConfig();
         // 加载数据
         loadData();
-        // 启动Socket
-        startSocket();
     }
 
     @Override
     public void onEnable() {
-        // 监听命令执行反馈
-        new EventHandler<>(ReceiveCommandFeedbackEvent.class)
-                .priority(HandlerPriority.HIGH)
-                .listener(EventListeners::onCommandResponse)
-                .register(this);
-        // 监听玩家离开事件
-        new EventHandler<>(PlayerQuitEvent.class)
-                .priority(HandlerPriority.NORMAL)
-                .listener(EventListeners::onPlayerQuit2)
-                .register(this);
-        if (runMode == Grasscutter.ServerRunMode.GAME_ONLY) {
-            // 仅运行游戏服务器时注册玩家加入和离开事件
-            new EventHandler<>(PlayerJoinEvent.class)
-                    .priority(HandlerPriority.HIGH)
-                    .listener(EventListeners::onPlayerJoin)
-                    .register(this);
-            new EventHandler<>(PlayerQuitEvent.class)
-                    .priority(HandlerPriority.HIGH)
-                    .listener(EventListeners::onPlayerQuit)
-                    .register(this);
-        } else if (runMode == Grasscutter.ServerRunMode.DISPATCH_ONLY) {
-            getHandle().addRouter(OpenCommandOnlyHttpHandler.class);
-        } else {
-            getHandle().addRouter(OpenCommandHandler.class);
-        }
+        LunarCore.getHttpServer().getApp().post("/opencommand/api", OpenCommandHandler::handle);
         getLogger().info("[OpenCommand] Enabled. https://github.com/jie65535/gc-opencommand-plugin");
     }
 
@@ -120,15 +90,9 @@ public final class OpenCommandPlugin extends Plugin {
 
         // 检查控制台Token
         if (config.consoleToken == null || config.consoleToken.isEmpty()) {
-            config.consoleToken = Utils.base64Encode(Crypto.createSessionKey(24));
+            config.consoleToken = Crypto.createSessionKey("1");
             saveConfig();
             getLogger().warn("Detected that consoleToken is empty, automatically generated Token for you as follows: {}", config.consoleToken);
-        }
-
-        try {
-            runMode = Grasscutter.getConfig().server.runMode;
-        } catch (Exception ex) {
-            getLogger().warn("[OpenCommand] Failed to load server configuration, default HYBRID mode is being used.");
         }
     }
 
@@ -168,20 +132,6 @@ public final class OpenCommandPlugin extends Plugin {
             getLogger().error("[OpenCommand] Unable to write to data file.");
         } catch (Exception e) {
             getLogger().error("[OpenCommand] Unable to save data file.");
-        }
-    }
-
-    private void startSocket() {
-        if (runMode == Grasscutter.ServerRunMode.GAME_ONLY) {
-            getLogger().info("[OpenCommand] Starting socket client...");
-            SocketClient.connectServer();
-        } else if (runMode == Grasscutter.ServerRunMode.DISPATCH_ONLY) {
-            getLogger().info("[OpenCommand] Starting socket server...");
-            try {
-                SocketServer.startServer();
-            } catch (IOException e) {
-                getLogger().error("[OpenCommand] Unable to start socket server.", e);
-            }
         }
     }
 }
