@@ -2,7 +2,7 @@
 
 中文 | [English](README_en-US.md)
 
-一个为第三方客户端开放GC命令执行接口的插件
+一个为第三方客户端开放LC命令执行接口的插件
 
 自 `1.7.0` 起可以通过 `|` 或者换行来分隔多条命令，例如：
 ```shell
@@ -12,17 +12,11 @@
 
 调用 `ping` 响应数据将包含插件版本号。
 
-## 使用本插件的应用
-- [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows 客户端工具
-- [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) 插件，在QQ里执行命令
-- [Yunzai-GrasscutterCommand](https://github.com/Zyy-boop/Yunzai-GrasscutterCommand) —— Yunzai-bot插件，在QQ里执行命令
-- 待补充
-
 ## 服务端安装
 
 1. 在 [Release](https://github.com/jie65535/gc-opencommand-plugin/releases) 下载 `jar`
-2. 放入 `grasscutter/plugins` 文件夹
-3. 重启 `grasscutter` 即可生效
+2. 放入 `LunarCore/plugins` 文件夹
+3. 重启 `LunarCore` 即可生效
 
 ## 玩家使用流程
 
@@ -51,22 +45,8 @@
 
 1. 克隆仓库
 2. 在目录下新建 `lib` 目录
-3. 将 `grasscutter.jar` 放入 `lib` 目录
+3. 将 `LunarCore.jar` 放入 `lib` 目录
 4. 执行 `gradle build`
-
-## 多服务器
-### 主服务器 (Dispatch)
-1. 在 `opencommand-plugin` 目录下打开 `config.json`
-2. 修改 `socketPort` 值为一个未被使用的端口
-3. 设置 `socketToken` 多服务器通信密钥，建议使用至少32字符的长随机字符串。
-4. 重新启动服务端即可生效配置
-
-### 子服务器 (Game)
-1. 在 `opencommand-plugin` 目录下打开 `config.json`
-2. 修改 `socketHost` 和 `socketPort` 值为主服务器的地址和端口
-3. 设置 `socketToken` 和主服务器相同的值
-4. 设置 `socketDisplayName` 值为你的服务器名称 (用途请见[下方](https://github.com/jie65535/gc-opencommand-plugin#%E8%8E%B7%E5%8F%96%E5%A4%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%88%97%E8%A1%A8))
-5. 重新启动服务端即可生效配置
 
 ---
 
@@ -82,14 +62,6 @@
   "tempTokenExpirationTime_S": 300,
   // 授权令牌最后使用过期时间（小时）
   "tokenLastUseExpirationTime_H": 48,
-  // 多服务器通信端口
-  "socketPort": 5746,
-  // 多服务器通信密钥
-  "socketToken": "",
-  // 多服务器Dispatch服务器地址
-  "socketHost": "127.0.0.1",
-  // 多服务器显示名称
-  "socketDisplayName": ""
 }
 ```
 
@@ -139,22 +111,6 @@ public final class JsonResponse {
 | retcode | `200`     | `Int`    |
 | message | `Success` | `String` |
 | data    | `null`    | `null`   |
-
-#### `获取在线玩家`
-
-##### Request
-
-| 请求参数   | 请求数据     | 类型       |
-|--------|----------|----------|
-| action | `online` | `String` |
-
-##### Response
-
-| 返回参数    | 返回数据                            | 类型           |
-|---------|---------------------------------|--------------|
-| retcode | `200`                           | `Int`        |
-| message | `Success`                       | `String`     |
-| data    | `{"count": 0, playerList": []}` | `JsonObject` |
 
 #### `发送验证码`
 
@@ -222,57 +178,6 @@ public final class JsonResponse {
 | data    | `Command return` | `String` |
 
 ### 执行控制台命令
-
-#### `获取运行模式`
-
-##### Request
-
-| 请求参数   | 请求数据      | 类型       |
-|--------|-----------|----------|
-| action | `runmode` | `String` |
-| token  | `token`   | `String` |
-
-##### Response
-
-成功
-
-| 返回参数    | 返回数据                  | 类型       |
-|---------|-----------------------|----------|
-| retcode | `200`                 | `Int`    |
-| message | `Success`             | `String` |
-| data    | `1 (多服务器) / 0 (单服务器)` | `Int`    |
-
-#### `获取多服务器列表`
-
-##### Request
-
-| 请求参数   | 请求数据     | 类型       |
-|--------|----------|----------|
-| action | `server` | `String` |
-| token  | `token`  | `String` |
-
-##### Response
-
-成功
-
-| 返回参数    | 返回数据      | 类型           |
-|---------|-----------|--------------|
-| retcode | `200`     | `Int`        |
-| message | `Success` | `String`     |
-| data    | `{}`      | `JsonObject` |
-
-```json5
-{
-  "retcode": 200,
-  "message": "success",
-  "data": {
-    // 服务器 UUID
-    "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 服务器",
-    "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 开发服务器"
-  }
-}
-```
-
 #### `执行命令`
 
 ##### Request

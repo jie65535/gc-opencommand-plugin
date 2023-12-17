@@ -2,9 +2,9 @@
 
 [中文](README.md) | English
 
-A plugin that opens the GC command execution interface for third-party clients
+A plugin that opens the LC command execution interface for third-party clients
 
-Since `1.7.0`, multiple commands can be separated by `|` or newline, for example:
+multiple commands can be separated by `|` or newline, for example:
 ```shell
 /a 1 | /a 2
 /a 3
@@ -12,17 +12,11 @@ Since `1.7.0`, multiple commands can be separated by `|` or newline, for example
 
 Invoking `ping` the response data will contain the plugin version.
 
-## Applications using this plug-in
-- [GrasscutterTools](https://github.com/jie65535/GrasscutterCommandGenerator) —— Windows Client Tools
-- [JGrasscutterCommand](https://github.com/jie65535/JGrasscutterCommand) —— [Mirai](https://github.com/mamoe/mirai) Plugin, run commands in QQ
-- [Yunzai-GrasscutterCommand](https://github.com/Zyy-boop/Yunzai-GrasscutterCommand) —— Yunzai-bot plugin, execute commands in QQ
-- More...
-
 ## Server installation
 
 1. Download the `jar` in [Release](https://github.com/jie65535/gc-opencommand-plugin/releases)
-2. Put it in the `grasscutter/plugins` folder
-3. Restart `grasscutter` server
+2. Put it in the `LunarCore/plugins` folder
+3. Restart `LunarCore` server
 
 ## Player
 
@@ -55,22 +49,8 @@ Invoking `ping` the response data will contain the plugin version.
 1. `git clone https://github.com/jie65535/gc-opencommand-plugin`
 2. `cd gc-opencommand-plugin`
 3. `mkdir lib`
-4. `mv path/to/grasscutter-1.x.x-dev.jar ./lib`
+4. `mv path/to/LunarCore.jar ./lib`
 5. `gradle build`
-
-## Multi server
-### Master server (Dispatch)
-1. Open `config.json` in the `opencommand-plugin` directory
-2. Modify the `socketPort` value to an unused port
-3. Set `sockettoken` multi server communication key. It is recommended to use a long random string of at least 32 characters.
-4. Restart the server to make the configuration effective
-
-### Sub server (Game)
-1. Open `config.json` in the `opencommand-plugin` directory
-2. Modify the `sockethost` and `socketport` values to the address and port of the primary server
-3. Set the same value of `sockettoken` and the primary server
-4. Set the `socketDisplayName` value to your server name (See below for usage [Jump](https://github.com/jie65535/gc-opencommand-plugin/blob/master/README_en-US.md#get-mulit-server-list))
-5. Restart the server to make the configuration effective
 
 ---
 
@@ -86,14 +66,6 @@ Invoking `ping` the response data will contain the plugin version.
   "tempTokenExpirationTime_S": 300,
   // Authorization token last used expiration time (hours)
   "tokenLastUseExpirationTime_H": 48,
-   // Multi-server communication port
-   "socketPort": 5746,
-   // Multi-server communication key
-   "socketToken": "",
-   // Multi-server Dispatch server address
-   "socketHost": "127.0.0.1",
-   // multi-server display name
-   "socketDisplayName": ""
 }
 ```
 
@@ -143,22 +115,6 @@ public final class JsonResponse {
 | retcode  | `200`         | `String` |
 | message  | `Success`     | `String` |
 | data     | `null`        | `null`   |
-
-#### `Get online players`
-
-##### Request
-
-| Request | Request data | type     |
-|---------|--------------|----------|
-| action  | `online`     | `String` |
-
-##### Response
-
-| Response | Response data                   | type         |
-|----------|---------------------------------|--------------|
-| retcode  | `200`                           | `String`     |
-| message  | `Success`                       | `String`     |
-| data     | `{"count": 0, playerList": []}` | `JsonObject` |
 
 #### `Send code`
 
@@ -226,56 +182,6 @@ Success
 | data     | `Command return` | `String` |
 
 ### Run console command
-
-#### `Get run mode`
-
-##### Request
-
-| Request | Request data | Type     |
-|---------|--------------|----------|
-| action  | `runmode`    | `String` |
-| token   | `token`      | `String` |
-
-##### Response
-
-Success
-
-| Request | Response data                          | Type     |
-|---------|----------------------------------------|----------|
-| retcode | `200`                                  | `Int`    |
-| message | `Success`                              | `String` |
-| data    | `1 (Multi server) / 0 (Single server)` | `Int`    |
-
-#### `Get mulit server list`
-
-##### Request
-
-| Request | Request data | Type     |
-|---------|--------------|----------|
-| action  | `server`     | `String` |
-| token   | `token`      | `String` |
-
-##### Response
-
-Success
-
-| Request | Response data | Type         |
-|---------|---------------|--------------|
-| retcode | `200`         | `Int`        |
-| message | `Success`     | `String`     |
-| data    | `{}`          | `JsonObject` |
-
-```json5
-{
-  "retcode": 200,
-  "message": "success",
-  "data": {
-    // Server UUID
-    "13d82d0d-c7d9-47dd-830c-76588006ef6e": "2.8.0 Server",
-    "e6b83224-a761-4023-be57-e054c5bb823a": "2.8.0 Dev server"
-  }
-}
-```
 
 #### `Run command`
 
