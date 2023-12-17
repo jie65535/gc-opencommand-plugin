@@ -6,6 +6,7 @@ on:
       - "**.java"
     branches:
       - "master"
+      - "LunarCode"
   pull_request:
     paths:
       - "**.java"
@@ -35,7 +36,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
       - name: Download latest grasscutter jar
-        run: wget https://nightly.link/Grasscutters/Grasscutter/workflows/build/development/Grasscutter.zip && mkdir lib && unzip Grasscutter.zip -d lib
+        run: wget https://nightly.link/Melledy/LunarCore/workflows/build/development/LunarCore.zip && mkdir lib && unzip LunarCore.zip -d lib
         
       - name: Change permission
         run: chmod +x gradlew
@@ -46,5 +47,5 @@ jobs:
       - name: Upload build
         uses: actions/upload-artifact@v3
         with:
-          name: opencommand
-          path: opencommand*.jar
+          name: OpenCommand
+          path: '*.jar'
