@@ -32,7 +32,7 @@ public final class OpenCommandPlugin extends Plugin {
 
     private static OpenCommandPlugin instance;
 
-    private OpenCommandPlugin(Identifier identifier, URLClassLoader classLoader, File dataFolder, Logger logger) {
+    public OpenCommandPlugin(Identifier identifier, URLClassLoader classLoader, File dataFolder, Logger logger) {
         super(identifier, classLoader, dataFolder, logger);
     }
 
